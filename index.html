@@ -143,19 +143,7 @@
     };
 
     const SOUNDS = {
-        const SOUNDS = {
-        bgm: new Audio('https://www.dropbox.com/scl/fi/2ht3m16mct0lyjpph713f/Storm-of-Stock-Trade-Market.mp3?rlkey=s97fhf9kmwnbzf99g2n67cvu1&st=aotnhgri&dl=1'), // 
-        
-    };
-    SOUNDS.bgm.loop = true; SOUNDS.bgm.volume = 0.3;
-
-    // 
-    window.stopBGM = () => {
-        if (SOUNDS.bgm) {
-            SOUNDS.bgm.pause();
-            SOUNDS.bgm.currentTime = 0; // 재생 위치를 처음으로 초기화
-        }
-    };
+        bgm: new Audio('https://www.dropbox.com/scl/fi/2ht3m16mct0lyjpph713f/Storm-of-Stock-Trade-Market.mp3?rlkey=s97fhf9kmwnbzf99g2n67cvu1&st=aotnhgri&dl=1'),
         coin: () => { play8BitTone('square', 800, 0.1, 0.1, 1200); setTimeout(() => play8BitTone('square', 1200, 0.15, 0.1, 1600), 100); },
         wrong: () => { play8BitTone('sawtooth', 300, 0.3, 0.15, 100); },
         tick: () => { play8BitTone('square', 1000, 0.05, 0.05); },
@@ -177,6 +165,13 @@
         }
     };
     SOUNDS.bgm.loop = true; SOUNDS.bgm.volume = 0.3;
+
+    window.stopBGM = () => {
+        if (SOUNDS.bgm) {
+            SOUNDS.bgm.pause();
+            SOUNDS.bgm.currentTime = 0; // 재생 위치를 처음으로 초기화
+        }
+    };
 
     window.playSound = (soundKey) => {
         if (!soundKey) return;
