@@ -384,7 +384,7 @@
         { id: 'i20', name: '📈 상승장 감지기', tier: 'A', type: 'active_self', desc: '다음 장에서 가격이 오를 확률이 높은 주식 정보를 얻습니다.' },
         { id: 'i4', name: '🥷 소매치기', tier: 'A', type: 'active_player', desc: '선택한 사람의 현금 중 10%를 훔쳐옵니다.' },
         { id: 'i18', name: '😋 야미', tier: 'A', type: 'active_player_yummy', desc: '상대방을 지정하고 보유 주식을 확인한 뒤, 그 종목을 전부 뺏어옵니다.' },
-        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'A', type: 'active_global', desc: '나를 제외한 모든 사람들을 8초간 행동 불가로 만듭니다.' },
+        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'A', type: 'active_global', desc: '나를 제외한 모든 사람들을 6초간 행동 불가로 만듭니다.' },
         { id: 'i17', name: '🛑 서킷 브레이커', tier: 'A', type: 'active_global', desc: '주식 시장의 모든 거래를 10초간 정지시킵니다.' },
         { id: 'i11', name: '📖 오픈북 찬스', tier: 'A', type: 'active_self', desc: '다음 5번의 퀴즈에서 오답 보기가 모두 사라집니다.' },
         { id: 'i12', name: '📰 가짜 뉴스 살포', tier: 'A', type: 'active_player', desc: '상대방 화면 전체에 닫기 귀찮은 가짜 뉴스 창을 도배합니다.' },
@@ -881,9 +881,9 @@
                     roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` });
                 }
             } else if (data.itemId === 'i5') { 
-                const fTime = Date.now() + 8000; 
+                const fTime = Date.now() + 6000; 
                 players.forEach(x => { if(x.id !== data.uid) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
-                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `나를 제외한 모두를 8초간 얼려버렸습니다!` }, conn);
+                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `나를 제외한 모두를 6초간 얼려버렸습니다!` }, conn);
             } else if (data.itemId === 'i7') { 
                 let oldAmt = p.portfolio[data.targetId] || 0;
                 let oldCost = oldAmt * (p.avgPrice[data.targetId] || 0);
