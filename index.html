@@ -15,6 +15,9 @@
             color: #f8fafc; 
             overflow-x: hidden;
             overscroll-behavior-y: none;
+            /* 보안: 드래그 선택 방지 */
+            user-select: none;
+            -webkit-user-select: none;
         }
         .stock-up { color: #ef4444; } 
         .stock-down { color: #3b82f6; } 
@@ -87,6 +90,15 @@
     </style>
 </head>
 <body class="min-h-screen flex bg-slate-900 text-slate-50 overflow-hidden">
+
+    <script>
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', event => {
+            if (event.key === 'F12' || (event.ctrlKey && event.shiftKey && event.key === 'I')) {
+                event.preventDefault();
+            }
+        });
+    </script>
 
     <div id="app-container" class="flex flex-grow w-full h-[100dvh] relative overflow-hidden">
         <div id="app" class="flex-grow flex flex-col w-full max-w-6xl mx-auto p-2 md:p-3 relative h-full overflow-y-auto custom-scrollbar">
@@ -226,18 +238,19 @@
         {word: 'worry', meaning: '걱정, 고민거리'}, {word: 'smart', meaning: '현명한, 똑똑한'}
     ];
 
+    // 패치 적용: 병하전자, 대송 비스트 홀딩스, JH엔터로 변경 및 가격/변동성 수정
     const INITIAL_STOCKS = [
         { id: 's1', name: '🤖 DS AI랩스', price: 10000, history: [10000], vol: 0.40 },
-        { id: 's2', name: '🪖 경식디펜스', price: 5000, history: [5000], vol: 0.30 },
+        { id: 's2', name: '🪖 경식디펜스', price: 5000, history: [5000], vol: 0.55 },
         { id: 's3', name: '🚀 예린스페이스', price: 20000, history: [20000], vol: 0.45 },
-        { id: 's4', name: '🧬 YG바이오', price: 8000, history: [8000], vol: 0.40 },
-        { id: 's5', name: '🐳 혜민전자', price: 30000, history: [30000], vol: 0.25 },
-        { id: 's6', name: '💾 JH칩스', price: 40000, history: [40000], vol: 0.35 },
-        { id: 's7', name: '🛒 유진커머스', price: 3000, history: [3000], vol: 0.20 },
-        { id: 's8', name: '🎮 다솜게임즈', price: 15000, history: [15000], vol: 0.35 },
-        { id: 's9', name: '♻️ 형진에코', price: 12000, history: [12000], vol: 0.25 },
+        { id: 's4', name: '🧬 YG바이오', price: 8000, history: [8000], vol: 0.55 },
+        { id: 's5', name: '🐳 병하전자', price: 30000, history: [30000], vol: 0.25 },
+        { id: 's6', name: '🦁 대송 비스트 홀딩스', price: 600, history: [600], vol: 0.90 }, // 극단적 동전주
+        { id: 's7', name: '🛒 유진커머스', price: 3000, history: [3000], vol: 0.30 },
+        { id: 's8', name: '🎮 다솜게임즈', price: 15000, history: [15000], vol: 0.45 },
+        { id: 's9', name: '♻️ 형진에코', price: 12000, history: [12000], vol: 0.35 },
         { id: 's10', name: '💰 경환캐피탈', price: 25000, history: [25000], vol: 0.15 },
-        { id: 's11', name: '🎤 REO엔터', price: 10000, history: [10000], vol: 0.50 },
+        { id: 's11', name: '🎤 JH엔터', price: 10000, history: [10000], vol: 0.50 },
         { id: 's12', name: '🍩 지원베이커리', price: 5000, history: [5000], vol: 0.20 }
     ];
 
@@ -262,7 +275,7 @@
             hintMsg: "🌠 속보: 민간 우주 탐사선 발사 D-1!<br>우주 산업의 역사가 새로 쓰일지 전 세계가 주목합니다.", 
             results: [
                 { resultMsg: "🚀 예린스페이스, 성공적으로 궤도 안착!<br>우주 관광 시대가 열립니다.<br>[예린스페이스 떡상]", targets: ['s3'], impact: 0.35 },
-                { resultMsg: "🚀 예린스페이스, 쏜 로켓이 앞마당 텃밭에 추락!<br>부서진 밭의 배추값만 금값이 되었습니다.<br>[스페이스 떡락, 커머스 상승]", targets: ['s3'], impact: -0.30, down_targets: ['s7'], down_impact: 0.15 },
+                { resultMsg: "🚀 예린스페이스, 쏜 로켓이 대송중 운동장에 추락!<br>부서진 밭의 배추값만 금값이 되었습니다.<br>[스페이스 떡락, 커머스 상승]", targets: ['s3'], impact: -0.30, down_targets: ['s7'], down_impact: 0.15 },
                 { resultMsg: "🚀 예린스페이스, 발사체 점화 불량으로 무기한 발사 연기.<br>실망 매물 쏟아짐.<br>[스페이스 하락]", targets: ['s3'], impact: -0.20 }
             ]
         },
@@ -277,17 +290,17 @@
         { 
             hintMsg: "🔌 속보: 대규모 데이터 센터 증설 프로젝트 내일 발표!<br>전자 및 반도체 부품 수요가 급등할 전망입니다.", 
             results: [
-                { resultMsg: "🐳 혜민전자, 부품 독점 공급 확정!<br>공장이 멈추지 않고 돌아갑니다.<br>[혜민전자, JH칩스 동반 상승]", targets: ['s5', 's6'], impact: 0.20 },
-                { resultMsg: "🐳 혜민전자, 회장님이 청소하다 메인 서버 콘센트 뽑음!<br>전 세계 인터넷 일시 마비 사태.<br>[혜민전자 하락]", targets: ['s5'], impact: -0.25 },
-                { resultMsg: "🐳 혜민전자, 수주는 실패했지만 자체 칩 개발 호재 발표!<br>[혜민전자 소폭 상승]", targets: ['s5'], impact: 0.15 }
+                { resultMsg: "🐳 병하전자, 부품 독점 공급 확정!<br>공장이 멈추지 않고 돌아갑니다.<br>[병하전자 동반 상승]", targets: ['s5'], impact: 0.20 },
+                { resultMsg: "🐳 병하전자, 회장님이 청소하다 메인 서버 콘센트 뽑음!<br>전 세계 인터넷 일시 마비 사태.<br>[병하전자 하락]", targets: ['s5'], impact: -0.25 },
+                { resultMsg: "🐳 병하전자, 수주는 실패했지만 자체 칩 개발 호재 발표!<br>[병하전자 소폭 상승]", targets: ['s5'], impact: 0.15 }
             ]
         },
+        // 대송 비스트 홀딩스 전용 뉴스 변경
         { 
-            hintMsg: "👽 속보: 정부, 미확인 비행 물체(UFO) 잔해 수거 발표!<br>초정밀 반도체 기업들이 외계 기술을 탐냅니다.", 
+            hintMsg: "🐾 속보: 대송 비스트 홀딩스 사옥 지하실에서 괴상한 짐승의 울음소리가 들린다는 제보!", 
             results: [
-                { resultMsg: "💾 JH칩스, 지하실에서 외계인을 고문해 신형 칩 개발 성공!<br>압도적 성능으로 글로벌 1위 탈환!<br>[JH칩스 폭등]", targets: ['s6'], impact: 0.35 },
-                { resultMsg: "♻️ 알고보니 UFO 잔해는 형진에코가 버린 거대 스티로폼이었음!<br>허위 사실 유포로 두 기업 모두 압수수색.<br>[JH칩스, 형진에코 동반 하락]", targets: ['s6', 's9'], impact: -0.20 },
-                { resultMsg: "💾 JH칩스, 외계 기술 모방 시도 중 공장 화재 발생!<br>생산 라인 마비로 타격.<br>[JH칩스 하락]", targets: ['s6'], impact: -0.15 }
+                { resultMsg: "🦁 대송 비스트 홀딩스, 공룡을 복원해 글로벌 보안 사업에 진출 선언!<br>대박 호재에 주가 미친듯 폭등!<br>[비스트 홀딩스 폭등]", targets: ['s6'], impact: 0.80 },
+                { resultMsg: "🦁 대송 비스트 홀딩스, 알고 보니 사장님의 지독한 코골이 소리로 밝혀짐...<br>전 세계적인 웃음거리가 되며 개미들 피눈물!<br>[비스트 홀딩스 폭락]", targets: ['s6'], impact: -0.60 }
             ]
         },
         { 
@@ -302,7 +315,7 @@
             hintMsg: "🛸 속보: 글로벌 게임쇼 개막! 대형 신작 발표 예정.<br>게이머들의 기대감이 최고조에 달하고 있습니다.", 
             results: [
                 { resultMsg: "🎮 다솜게임즈, 신작 트레일러 공개에 전 세계 유저들 환호!<br>올해의 고티(GOTY) 예약 완료.<br>[다솜게임즈 급등]", targets: ['s8'], impact: 0.30 },
-                { resultMsg: "🎮 다솜게임즈, 신작 버그로 캐릭터들이 하늘을 수영함!<br>오히려 개그 밈(Meme)이 되어 글로벌 대히트!<br>[다솜게임즈 상승]", targets: ['s8'], impact: 0.20 },
+                { resultMsg: "🎮 다솜게임즈, 신작 버그로 캐릭터들이 하늘을 수영함!<br>오히려 바이럴되어 되어 글로벌 대히트!<br>[다솜게임즈 상승]", targets: ['s8'], impact: 0.20 },
                 { resultMsg: "🎮 다솜게임즈, 신작 발표 무난하게 종료.<br>특별한 호재 없이 차익 실현 매물 쏟아짐.<br>[다솜게임즈 소폭 하락]", targets: ['s8'], impact: -0.15 }
             ]
         },
@@ -310,7 +323,7 @@
             hintMsg: "❌ 속보: 환경부, 폐기물 무단투기 특별 단속 기간 선포!<br>친환경 기업들의 옥석 가리기가 시작됩니다.", 
             results: [
                 { resultMsg: "♻️ 형진에코, 쓰레기를 연료로 바꾸는 마법의 소각로 발명!<br>전 세계 쓰레기를 수입해오고 있습니다.<br>[형진에코 떡상]", targets: ['s9'], impact: 0.35 },
-                { resultMsg: "♻️ 형진에코, 사장님이 몰래 쓰레기 무단투기하다 CCTV에 적발!<br>친환경 기업의 민낯이 드러났습니다.<br>[형진에코 나락]", targets: ['s9'], impact: -0.35 },
+                { resultMsg: "♻️ 형진에코, 사장님이 몰래 킥보드 타고 쓰레기 무단투기하다 CCTV에 적발!<br>친환경 기업의 민낯이 드러났습니다.<br>[형진에코 나락]", targets: ['s9'], impact: -0.35 },
                 { resultMsg: "♻️ 형진에코, 무단투기 논란 해명 성공! 오히려 모범 기업 표창.<br>[형진에코 반등]", targets: ['s9'], impact: 0.20 }
             ]
         },
@@ -323,17 +336,17 @@
             ]
         },
         { 
-            hintMsg: "👨‍🌾 속보: 초대형 엔터 그룹, 간판 멤버 탈퇴설 솔솔~<br>팬들의 불안감이 주식 시장에 반영되고 있습니다.", 
+            hintMsg: "👨‍🌾 속보: 초대형 엔터 그룹, 간판 멤버들의 불화 및 탈퇴설?!<br>팬들의 불안감이 주식 시장에 반영되고 있습니다.", 
             results: [
-                { resultMsg: "🎤 REO엔터, 탈퇴한 멤버 빼고 남은 멤버들이 빌보드 1위 달성!<br>오히려 전화위복이 되었습니다.<br>[REO엔터 떡상]", targets: ['s11'], impact: 0.35 },
-                { resultMsg: "🎤 REO엔터, 그룹 리더가 돌연 귀농 선언하고 배추 심으러 떠남!<br>엔터주는 나락가고 농기계 렌탈업만 신났습니다.<br>[REO엔터 폭락]", targets: ['s11'], impact: -0.40 },
-                { resultMsg: "🎤 REO엔터, 탈퇴설은 노이즈 마케팅으로 판명!<br>어그로 성공으로 팬클럽 가입자 급증.<br>[REO엔터 상승]", targets: ['s11'], impact: 0.20 }
+                { resultMsg: "🎤 JH엔터, 탈퇴한 멤버 빼고 남은 멤버들이 빌보드 1위 달성!<br>오히려 전화위복이 되었습니다.<br>[JH엔터 떡상]", targets: ['s11'], impact: 0.35 },
+                { resultMsg: "🎤 JH엔터, 그룹 리더가 돌연 은퇴하고 슬도에 낚시하러 떠남!<br>엔터주는 나락가고 낚시가게만 웃음.<br>[JH엔터 폭락]", targets: ['s11'], impact: -0.40 },
+                { resultMsg: "🎤 JH엔터, 탈퇴설은 노이즈 마케팅으로 판명!<br>어그로 성공으로 팬클럽 가입자 급증.<br>[JH엔터 상승]", targets: ['s11'], impact: 0.20 }
             ]
         },
         { 
             hintMsg: "🤮 속보: 식품 업계, 파격적인 '괴식' 트렌드 예고!<br>기괴한 신제품 출시에 제과업계 주가가 꿈틀댑니다.", 
             results: [
-                { resultMsg: "🍩 지원베이커리, '민트초코 떡볶이맛' 대출시!<br>끔찍한 맛으로 SNS 먹방 챌린지가 대유행하며 매출 폭발!<br>[지원베이커리 상승]", targets: ['s12'], impact: 0.25 },
+                { resultMsg: "🍩 지원베이커리, '민트초코 떡볶이' 대출시!<br>끔찍한 맛으로 SNS 먹방 챌린지가 대유행하며 매출 폭발!<br>[지원베이커리 상승]", targets: ['s12'], impact: 0.25 },
                 { resultMsg: "🍩 지원베이커리, 괴식을 먹은 소비자들 단체 복통 호소.<br>소화제 수요 폭증으로 바이오 기업만 신났습니다.<br>[베이커리 폭락, 바이오 상승]", targets: ['s12'], impact: -0.30, down_targets: ['s4'], down_impact: 0.20 },
                 { resultMsg: "🍩 지원베이커리, 기괴한 맛에 선넘었다며 소비자 불매 운동 조짐...<br>[지원베이커리 하락]", targets: ['s12'], impact: -0.15 }
             ]
@@ -362,8 +375,8 @@
         { 
             hintMsg: "🔬 속보: 초전도체 상온 구현 성공 논란?<br>전 세계 과학계 발칵, 진위 여부에 증시가 요동칩니다.", 
             results: [
-                { resultMsg: "🐳 혜민전자, 핵심 초전도체 수혜주로 지목되며 묻지마 상한가 직행!<br>[혜민전자 급등]", targets: ['s5'], impact: 0.45 },
-                { resultMsg: "🐳 혜민전자, 초전도체 데이터 검증 결과 스캠(사기)으로 판명되며 주가 나락행.<br>[혜민전자 폭락]", targets: ['s5'], impact: -0.45 }
+                { resultMsg: "🐳 병하전자, 핵심 초전도체 수혜주로 지목되며 묻지마 상한가 직행!<br>[병하전자 급등]", targets: ['s5'], impact: 0.45 },
+                { resultMsg: "🐳 병하전자, 초전도체 데이터 검증 결과 스캠(사기)으로 판명되며 주가 나락행.<br>[병하전자 폭락]", targets: ['s5'], impact: -0.45 }
             ]
         },
         { 
@@ -378,10 +391,11 @@
     const ITEMS = [
         { id: 'i1', name: '🍀 행운의 펜던트', tier: 'S', type: 'active_self', desc: '사용 시 영구적으로 내 아이템 획득 확률이 10% 증가합니다.' },
         { id: 'i2', name: '⚖️ 운명의 부름', tier: 'S', type: 'active_player', desc: '선택한 다른 사람과 나의 모든 자산을 통째로 바꿉니다.' },
-        { id: 'i10', name: '🛡️ 방탄조끼', tier: 'S', type: 'active_self', desc: '사용 시 다음 1회의 공격(자산 스왑, 강탈 등)을 자동으로 막아냅니다.' },
+        { id: 'i21', name: '✋ 나쁜 손', tier: 'S', type: 'active_player_item', desc: '선택한 플레이어의 가방에서 랜덤으로 아이템 1개를 훔쳐옵니다.' },
+        { id: 'i10', name: '🛡️ 방탄조끼', tier: 'A', type: 'active_self', desc: '사용 시 다음 1회의 공격(자산 스왑, 강탈 등)을 자동으로 막아냅니다.' }, // A급으로 하향
         { id: 'i3', name: '🤫 회장님의 조언', tier: 'A', type: 'active_self', desc: '다음 장에서 크게 변동할 주식 종목 하나를 알아냅니다.' },
-        { id: 'i19', name: '📉 하락장 감지기', tier: 'A', type: 'active_self', desc: '다음 장에서 가격이 떨어질 확률이 높은 주식 정보를 얻습니다.' },
-        { id: 'i20', name: '📈 상승장 감지기', tier: 'A', type: 'active_self', desc: '다음 장에서 가격이 오를 확률이 높은 주식 정보를 얻습니다.' },
+        { id: 'i19', name: '📉 하락장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 후 사용하면 다음에 폭락할 주식 정보를 정확히 스포일러합니다.' },
+        { id: 'i20', name: '📈 상승장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 후 사용하면 다음에 폭등할 주식 정보를 정확히 스포일러합니다.' },
         { id: 'i4', name: '🥷 소매치기', tier: 'A', type: 'active_player', desc: '선택한 사람의 현금 중 10%를 훔쳐옵니다.' },
         { id: 'i18', name: '😋 야미', tier: 'A', type: 'active_player_yummy', desc: '상대방을 지정하고 보유 주식을 확인한 뒤, 그 종목을 전부 뺏어옵니다.' },
         { id: 'i5', name: '❄️ 아이스 에이지', tier: 'A', type: 'active_global', desc: '나를 제외한 모든 사람들을 6초간 행동 불가로 만듭니다.' },
@@ -457,7 +471,7 @@
             return;
         }
         let optionsHtml = '';
-        if (type === 'active_player' || type === 'active_player_yummy') {
+        if (type === 'active_player' || type === 'active_player_yummy' || type === 'active_player_item') {
             const others = players.filter(p => p.id !== myUid);
             if (others.length === 0) return showCustomPopup("오류", "현재 공격할 대상이 없습니다.", "❌", "bg-red-600");
             others.forEach(p => {
@@ -492,7 +506,9 @@
         const targetStocks = Object.entries(targetPlayer.portfolio || {}).filter(([_, amt]) => amt > 0);
         
         if (targetStocks.length === 0) {
-            stockOptionsHtml = `<div class="text-center text-slate-400 font-bold py-4">상대방이 보유한 주식이 없습니다.</div>`;
+            stockOptionsHtml = `
+                <div class="text-center text-slate-400 font-bold py-6 bg-slate-900/50 rounded-xl mb-2 border border-slate-700">상대방이 보유한 주식이 없습니다.</div>
+                <button onclick="document.getElementById('target-modal').remove()" class="w-full bg-slate-600 p-3 rounded-xl font-bold active:scale-95 transition text-white shadow-md">돌아가기</button>`;
         } else {
             targetStocks.forEach(([sId, amt]) => {
                 const s = roomState.stocks.find(x => x.id === sId);
@@ -735,6 +751,13 @@
 
             if (isBottom3) earned *= 2;
 
+            // 지원베이커리 (s12) 추가 보너스 처리
+            let bakeryBonus = 0;
+            if (p.portfolio['s12'] > 0) {
+                bakeryBonus = p.portfolio['s12'] * 500;
+                earned += bakeryBonus;
+            }
+
             p.cash += earned;
             p.correctAnswers++;
             p.earnedFromQuiz = (p.earnedFromQuiz || 0) + earned;
@@ -759,13 +782,18 @@
                     sendToPlayer(data.uid, { type: 'EVENT_ITEM_GOT', item: item }, conn);
                 }
             }
-            sendToPlayer(data.uid, { type: 'EVENT_QUIZ_RESULT', earned: earned }, conn);
+            sendToPlayer(data.uid, { type: 'EVENT_QUIZ_RESULT', earned: earned, bakeryBonus: bakeryBonus }, conn);
         } 
         else if (data.type === 'USE_ITEM') {
+            // 정보 아이템 타이밍 제한
+            if ((data.itemId === 'i19' || data.itemId === 'i20') && roomState.phase !== 'hint') {
+                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '이 아이템은 [예측 힌트]가 화면에 떴을 때 사용해야 정확한 결과를 알 수 있습니다!\n(아이템을 돌려받았습니다)' }, conn);
+                return; // 소모하지 않고 취소
+            }
+
             p.items.splice(data.itemIdx, 1);
             p.itemUseCount = (p.itemUseCount || 0) + 1;
             
-            // --- Active Self Effects (버프, 돈 등) ---
             if (data.itemId === 'i10') {
                 p.hasShield = true;
                 sendToPlayer(data.uid, { type: 'EVENT_SHIELD_ON' }, conn);
@@ -791,12 +819,12 @@
                 
                 if (data.itemId === 'i19') {
                     let names = downStocks.map(id => roomState.stocks.find(s=>s.id===id).name).join(', ');
-                    if(!names) names = '특정 불가 (폭락장 면면 확인 불가)';
-                    sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📉 다음 장락 예상 종목:\n[${names}]` }, conn);
+                    if(!names) names = '해당 없음 (폭락장 면면 특정 불가)';
+                    sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📉 다음 폭락 확정 종목:\n[${names}]` }, conn);
                 } else {
                     let names = upStocks.map(id => roomState.stocks.find(s=>s.id===id).name).join(', ');
-                    if(!names) names = '특정 불가 (폭등장 면면 확인 불가)';
-                    sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📈 다음 상승 예상 종목:\n[${names}]` }, conn);
+                    if(!names) names = '해당 없음 (폭등장 면면 특정 불가)';
+                    sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📈 다음 폭등 확정 종목:\n[${names}]` }, conn);
                 }
             } 
             else if (data.itemId === 'i3') { 
@@ -809,7 +837,6 @@
                 p.openBookCount = 5;
                 sendToPlayer(data.uid, { type: 'EVENT_OPENBOOK' }, conn);
             }
-            // --- 공격형 아이템 ---
             else if (data.itemId === 'i2') { 
                 let target = players.find(x => x.id === data.targetId);
                 if(target) {
@@ -865,6 +892,27 @@
                 } else {
                     sendToPlayer(data.uid, { type: 'EVENT_YUMMY_FAIL' }, conn);
                 }
+            } else if (data.itemId === 'i21') { 
+                let target = players.find(x => x.id === data.targetId);
+                if(target) {
+                    if (target.hasShield) {
+                        target.hasShield = false;
+                        sendToPlayer(target.id, { type: 'EVENT_DEFENDED', from: p.name }, hostConns[target.id] || null);
+                        sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: target.name }, conn);
+                    } else if (target.items.length > 0) {
+                        let stealIdx = Math.floor(Math.random() * target.items.length);
+                        let stolenItem = target.items.splice(stealIdx, 1)[0];
+                        if(p.items.length >= 3) {
+                            p.cash += 3000;
+                        } else {
+                            p.items.push(stolenItem);
+                        }
+                        sendToPlayer(target.id, { type: 'EVENT_ITEM_STOLEN', from: p.name, itemName: stolenItem.name }, hostConns[target.id] || null);
+                        sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님의 [${stolenItem.name}] 아이템을 훔쳤습니다!` }, conn);
+                    } else {
+                        sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님은 현재 가진 아이템이 없습니다...` }, conn);
+                    }
+                }
             } else if (data.itemId === 'i12') { 
                 let target = players.find(x => x.id === data.targetId);
                 if(target) {
@@ -895,7 +943,6 @@
                 roomState.circuitBreakerBy = p.name;
                 roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 ${p.name}님이 서킷 브레이커를 발동했습니다! 모든 거래가 10초간 정지됩니다.` });
                 
-                // 글로벌 이벤트로 모든 플레이어에게 방송 (무한 루프 버그 해결)
                 players.forEach(x => {
                     if(x.id !== data.uid) {
                         sendToPlayer(x.id, { type: 'EVENT_CIRCUIT_BREAKER', by: p.name }, hostConns[x.id] || null);
@@ -906,6 +953,37 @@
         }
         else if (data.type === 'HOST_NEXT_PHASE') {
             roomState.endPhase = 'rankings';
+        }
+        else if (data.type === 'HOST_WEALTH_TAX') {
+            let sortedByAsset = players.map(pl => {
+                let ast = pl.cash;
+                Object.entries(pl.portfolio||{}).forEach(([k,v]) => { const st = roomState.stocks.find(x=>x.id===k); if(st) ast += st.price*v; });
+                return { pl, ast };
+            }).sort((a,b) => b.ast - a.ast);
+            
+            let taxTotal = 0;
+            let topLimit = Math.min(5, sortedByAsset.length);
+            
+            for(let i=0; i<topLimit; i++) {
+                let p = sortedByAsset[i].pl;
+                let tax = Math.floor(p.cash * 0.20);
+                if (tax > 0) {
+                    p.cash -= tax;
+                    taxTotal += tax;
+                }
+            }
+            
+            if (sortedByAsset.length > 5 && taxTotal > 0) {
+                let lowerPlayers = sortedByAsset.slice(5);
+                let share = Math.floor(taxTotal / lowerPlayers.length);
+                lowerPlayers.forEach(x => { x.pl.cash += share; });
+            }
+            
+            roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 [부유세] 상위권 현금 재산의 20%(${taxTotal.toLocaleString()}원)를 징수하여 하위권에 분배했습니다!` });
+            
+            players.forEach(p => {
+                sendToPlayer(p.id, { type: 'EVENT_WEALTH_TAX', taxTotal }, hostConns[p.id] || null);
+            });
         }
         hostBroadcast();
     };
@@ -1068,6 +1146,12 @@
         if(btn && currentRole === 'host') { btn.disabled = players.length === 0; btn.classList.toggle('opacity-50', players.length===0); }
     };
 
+    window.triggerWealthTax = () => {
+        if (confirm("부유세를 징수하시겠습니까? (1~5등의 현금 20%를 거둬 하위권에게 일괄 분배합니다)")) {
+            sendPlayerAction({ type: 'HOST_WEALTH_TAX' });
+        }
+    };
+
     window.startGame = () => {
         window.playSound('bgm');
         roomState.status = 'playing';
@@ -1104,12 +1188,62 @@
                         if (outcome.targets && outcome.targets.includes(stock.id)) multi += outcome.impact;
                         if (outcome.down_targets && outcome.down_targets.includes(stock.id)) multi += outcome.down_impact;
                         let np = Math.floor(stock.price * multi);
-                        np = Math.max(500, Math.min(200000, np));
+                        np = Math.max(50, Math.min(200000, np)); // 가격 하한선 50원으로 조정
                         np = Math.round(np / 10) * 10;
                         stock.history.push(np);
                         if(stock.history.length > 100) stock.history.shift();
                         stock.price = np;
                     });
+
+                    // 배당금 처리
+                    players.forEach(p => {
+                        let divMsg = [];
+                        let totalDiv = 0;
+                        // 경환캐피탈(s10) 5% 이자
+                        if (p.portfolio['s10'] > 0) {
+                            let s10Price = roomState.stocks.find(s=>s.id==='s10').price;
+                            let amt = Math.floor(p.portfolio['s10'] * s10Price * 0.05);
+                            p.cash += amt; totalDiv += amt;
+                            divMsg.push(`[경환캐피탈] 예금 이자 ${amt.toLocaleString()}원`);
+                        }
+                        // 병하전자(s5) 주당 1500원 배당
+                        if (p.portfolio['s5'] > 0) {
+                            let amt = p.portfolio['s5'] * 1500;
+                            p.cash += amt; totalDiv += amt;
+                            divMsg.push(`[병하전자] 고정 배당금 ${amt.toLocaleString()}원`);
+                        }
+                        if (totalDiv > 0) {
+                            sendToPlayer(p.id, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[p.id] || null);
+                        }
+                    });
+
+                    // 상장폐지 로직
+                    roomState.stocks.forEach(stock => {
+                        if (stock.price < 300) {
+                            let oldName = stock.name;
+                            let emojiMatch = oldName.match(/^([^\s]+)\s/);
+                            let emoji = emojiMatch ? emojiMatch[1] : '📈';
+                            let rawName = oldName.replace(/^[^\s]+\s/, '');
+                            stock.name = `${emoji} 뉴(New) ${rawName}`;
+                            stock.price = 5000;
+                            stock.history.push(5000);
+                            
+                            players.forEach(p => {
+                                if (p.portfolio[stock.id]) {
+                                    delete p.portfolio[stock.id];
+                                    delete p.avgPrice[stock.id];
+                                }
+                            });
+                            
+                            roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 [상장폐지] ${oldName} 주가가 300원 미만으로 하락하여 휴지조각이 되었습니다.` });
+                            
+                            Object.values(hostConns).forEach(conn => {
+                                if(conn && conn.open) conn.send({ type: 'EVENT_DELISTED', oldName: oldName, newName: stock.name });
+                            });
+                            if(bc) bc.postMessage({ type: 'EVENT_DELISTED', oldName: oldName, newName: stock.name, targetUid: 'all' });
+                        }
+                    });
+
                     roomState.news = outcome.resultMsg;
                     roomState.phase = 'result';
                     roomState.chats.push({ uid: 'system', name: '시스템', text: '🚨 시장이 변동되었습니다! 뉴스를 확인하세요.' });
@@ -1198,9 +1332,26 @@
             else if (data.type === 'EVENT_QUIZ_RESULT' && data.targetUid === myUid) {
                 isWaitingForResult = false;
                 window.vibrateDevice(50); window.flashScreen('bg-green-400/30'); window.playSound('coin');
-                showCustomPopup("정답!", `${data.earned.toLocaleString()}원을 확보했습니다.`, "⭕", "bg-green-600");
+                let extraMsg = data.bakeryBonus > 0 ? `\n(지원베이커리 혜택 +${data.bakeryBonus.toLocaleString()}원 포함!)` : '';
+                showCustomPopup("정답!", `총 ${data.earned.toLocaleString()}원을 확보했습니다.${extraMsg}`, "⭕", "bg-green-600");
                 quizCurrentQuestion = null;
                 document.getElementById('player-game-container').outerHTML = '';
+                renderPlayerGame();
+            }
+            else if (data.type === 'EVENT_DIVIDEND' && data.targetUid === myUid) {
+                window.playSound('coin');
+                showCustomPopup("💰 배당금 입금", data.msg, "💵", "bg-green-700");
+            }
+            else if (data.type === 'EVENT_DELISTED' && (data.targetUid === 'all' || data.targetUid === myUid)) {
+                window.vibrateDevice([500, 200, 500]); window.flashScreen('bg-red-700/60'); window.playSound('siren');
+                showCustomPopup("🚨 상장폐지!", `[${data.oldName}] 주가가 300원 미만으로 떨어져 상장폐지되었습니다!\n보유 주식이 모두 휴지조각이 되었습니다.\n(이후 '${data.newName}'(으)로 재상장됩니다)`, "💀", "bg-red-800", 3000);
+                document.getElementById('player-game-container')?.remove();
+                renderPlayerGame();
+            }
+            else if (data.type === 'EVENT_WEALTH_TAX' && data.targetUid === myUid) {
+                window.vibrateDevice([300, 100, 300]); window.flashScreen('bg-yellow-500/50'); window.playSound('siren');
+                showCustomPopup("🚨 부유세 징수!", `정부가 재산이 많은 사람들에게 세금을 더 걷어서 국민들에게 지원금을 나눠줍니다!\n(총 분배액: ${data.taxTotal.toLocaleString()}원)`, "💸", "bg-yellow-700", 3000);
+                document.getElementById('player-game-container')?.remove();
                 renderPlayerGame();
             }
             else if (data.type === 'EVENT_ITEM_GOT' && data.targetUid === myUid) { 
@@ -1223,6 +1374,12 @@
             }
             else if (data.type === 'EVENT_HINT' && data.targetUid === myUid) { showCustomPopup('극비 정보', `곧 [${data.stockName}] 주가에\n큰 변동이 있을 예정입니다.`, '🤫', 'bg-yellow-600'); }
             else if (data.type === 'EVENT_ATTACKED' && data.targetUid === myUid) { handleAttacked(data); }
+            else if (data.type === 'EVENT_ITEM_STOLEN' && data.targetUid === myUid) {
+                window.vibrateDevice([200, 100]); window.flashScreen('bg-purple-500/50'); window.playSound('wrong');
+                showCustomPopup('✋ 나쁜 손!', `${data.from}님이 당신의 [${data.itemName}] 아이템을 훔쳐갔습니다!`, '🥷', 'bg-purple-800');
+                document.getElementById('player-game-container')?.remove();
+                renderPlayerGame();
+            }
             else if (data.type === 'EVENT_ATTACKED_YUMMY' && data.targetUid === myUid) {
                 window.vibrateDevice([200, 100, 200]); window.flashScreen('bg-purple-500/50'); window.playSound('attacked');
                 showCustomPopup('🚨 야미 공격!', `${data.from}님이 당신의 [${data.stockName}] 주식\n${data.amt}주를 전부 뺏어갔습니다!`, '😋', 'bg-purple-800');
@@ -1245,7 +1402,6 @@
             else if (data.type === 'EVENT_OPENBOOK' && data.targetUid === myUid) {
                 showCustomPopup('📖 오픈북 발동!', '다음 5번의 퀴즈는 오답이 사라지고 정답만 보입니다!', '📖', 'bg-indigo-600');
             }
-            // 서킷 브레이커 버그 수정 (글로벌 이벤트 처리)
             else if (data.type === 'EVENT_CIRCUIT_BREAKER') {
                 window.playSound('siren'); window.flashScreen('bg-red-600/40');
                 showCustomPopup('🚨 서킷 브레이커', `${data.by}님이 서킷 브레이커를 발동했습니다!\n10초간 모든 거래가 중지됩니다.`, '🛑', 'bg-red-800');
@@ -1259,8 +1415,13 @@
                         div.style.left = (5 + Math.random()*60) + '%';
                         div.style.top = (5 + Math.random()*60) + '%';
                         div.style.transform = `rotate(${(Math.random()-0.5)*30}deg)`;
-                        div.innerHTML = `<div class="text-3xl mb-2">📰</div><div class="text-white font-black whitespace-pre-wrap">${data.news}</div><div class="text-xs text-yellow-300 mt-2 font-bold animate-pulse">(터치해서 닫기)</div>`;
-                        div.onclick = function() { window.playSound('tick'); this.remove(); };
+                        div.style.pointerEvents = 'auto'; // 터치 버그 픽스
+                        div.innerHTML = `<div class="text-3xl mb-2">📰</div><div class="text-white font-black whitespace-pre-wrap pointer-events-none">${data.news}</div><div class="text-xs text-yellow-300 mt-2 font-bold animate-pulse pointer-events-none">(터치해서 닫기)</div>`;
+                        
+                        const closeFunc = function(e) { e.preventDefault(); e.stopPropagation(); window.playSound('tick'); this.remove(); };
+                        div.onclick = closeFunc;
+                        div.ontouchstart = closeFunc; // 모바일 터치 대응
+                        
                         document.body.appendChild(div);
                     }, i * 150);
                 }
@@ -1668,7 +1829,10 @@
             <div class="flex justify-between items-center mb-4 bg-glass p-4 rounded-xl shadow-lg border-2 border-indigo-500/30">
                 <div><div class="text-slate-400 text-sm font-bold">ROOM CODE</div><div class="text-4xl font-black tracking-widest text-white">${roomCode}</div></div>
                 <div class="text-center"><div class="text-slate-400 text-sm font-bold">REMAINING</div><div class="text-5xl text-red-400 font-mono font-black" id="h-timer">--:--</div></div>
-                <button onclick="window.endGameRoom()" class="bg-red-600 hover:bg-red-500 px-6 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg"><i class="fas fa-power-off mr-2"></i>조기종료</button>
+                <div class="flex gap-2">
+                    <button onclick="window.triggerWealthTax()" class="bg-yellow-600 hover:bg-yellow-500 px-4 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg">💸 부유세 징수</button>
+                    <button onclick="window.endGameRoom()" class="bg-red-600 hover:bg-red-500 px-6 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg"><i class="fas fa-power-off mr-2"></i>조기종료</button>
+                </div>
             </div>
             
             <div id="host-news-box" class="bg-gradient-to-r from-yellow-900/60 to-yellow-800/40 border-yellow-500 border-l-8 p-6 rounded-2xl mb-5 shadow-2xl flex items-center gap-6 transition-colors duration-500">
@@ -1743,9 +1907,9 @@
 
     const renderMarketSummary = () => {
         let stocksCalc = roomState.stocks.map(s => {
-            const initial = INITIAL_STOCKS.find(x => x.id === s.id).price;
+            const initial = s.history.length > 0 ? s.history[0] : s.price; // 첫 가격 기준 (동적 리셋 고려)
             const diff = s.price - initial;
-            const pct = (diff / initial) * 100;
+            const pct = initial > 0 ? (diff / initial) * 100 : 0;
             return { ...s, initial, diff, pct };
         }).sort((a,b) => b.pct - a.pct);
 
