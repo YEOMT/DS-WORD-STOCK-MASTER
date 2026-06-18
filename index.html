@@ -87,10 +87,15 @@
         
         .blinded-text { color: #94a3b8; filter: blur(2px); user-select: none; }
         .sparkline-svg { drop-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        
+        /* 모바일 탭 스크롤 최적화 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="min-h-screen flex bg-slate-900 text-slate-50 overflow-hidden">
 
+    <!-- 보안 스크립트: 우클릭 및 F12 방지 -->
     <script>
         document.addEventListener('contextmenu', event => event.preventDefault());
         document.addEventListener('keydown', event => {
@@ -101,7 +106,8 @@
     </script>
 
     <div id="app-container" class="flex flex-grow w-full h-[100dvh] relative overflow-hidden">
-        <div id="app" class="flex-grow flex flex-col w-full max-w-6xl mx-auto p-2 md:p-3 relative h-full overflow-y-auto custom-scrollbar">
+        <!-- PC 화면에서 더 넓게 쓰도록 max-w-7xl로 확장 -->
+        <div id="app" class="flex-grow flex flex-col w-full max-w-7xl mx-auto p-2 md:p-3 relative h-full overflow-y-auto custom-scrollbar">
             <div class="flex items-center justify-center h-full">
                 <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div>
             </div>
@@ -203,51 +209,46 @@
     let quizWordQueue = []; 
 
     let peer = null; let myConn = null; let hostConns = {}; let bc = null; 
-    let roomState = { status: 'lobby', endPhase: null, stocks: [], news: "개장 준비 중... 30초 후 첫 뉴스가 발표됩니다.", phase: 'wait', nextPhaseTime: 0, nextEventIndex: 0, nextOutcomeIndex: 0, availableEvents: [], words: [], endTime: 0, chats: [], circuitBreakerUntil: 0, circuitBreakerBy: '' };
+    let roomState = { status: 'lobby', endPhase: null, stocks: [], news: "개장 준비 중... 30초 후 첫 뉴스가 발표됩니다.", phase: 'wait', nextPhaseTime: 0, nextEventIndex: 0, nextOutcomeIndex: 0, availableEvents: [], words: [], endTime: 0, chats: [], circuitBreakerUntil: 0, circuitBreakerBy: '', extraTimeTriggered: false };
     let players = []; let myData = null; 
     let hostTimerInterval = null;
 
-    // --- Data: Base Words List ---
     const DEFAULT_WORDS = [
-        {word: 'foreign', meaning: '외국의'}, {word: 'origin', meaning: '기원, 유래'}, {word: 'borrow', meaning: '빌리다, 차용하다'},
-        {word: 'culture', meaning: '문화'}, {word: 'language', meaning: '언어'}, {word: 'press', meaning: '누르다'},
-        {word: 'massage', meaning: '마사지, 안마'}, {word: 'British', meaning: '영국의, 영국인'}, {word: 'trader', meaning: '상인, 무역업자'},
-        {word: 'experience', meaning: '경험하다'}, {word: 'introduce', meaning: '도입하다, 소개하다'}, {word: 'century', meaning: '세기, 100년'},
-        {word: 'meaning', meaning: '의미, 뜻'}, {word: 'present', meaning: '현재의'}, {word: 'enter', meaning: '들어가다, 들어오다'},
-        {word: 'shortly', meaning: '곧, 얼마 안 있어'}, {word: 'soap', meaning: '비누'}, {word: 'machine', meaning: '기계'},
-        {word: 'human', meaning: '인간, 사람'}, {word: 'design', meaning: '설계하다, 고안하다'}, {word: 'produce', meaning: '생산하다, 만들다'},
-        {word: 'factory', meaning: '공장'}, {word: 'originally', meaning: '원래, 본래'}, {word: 'suggest', meaning: '제안하다'},
-        {word: 'slave', meaning: '노예'}, {word: 'decide', meaning: '결정하다, 결심하다'}, {word: 'fiction', meaning: '소설'},
-        {word: 'originate from', meaning: '~에서 유래하다'}, {word: 'creation', meaning: '창조'}, {word: 'myth', meaning: '신화'},
-        {word: 'storm', meaning: '폭풍'}, {word: 'anger', meaning: '화나게 하다'}, {word: 'cause', meaning: '일으키다, 원인이 되다'},
-        {word: 'flood', meaning: '홍수'}, {word: 'contact', meaning: '접촉, 연락'}, {word: 'civilization', meaning: '문명'},
-        {word: 'explorer', meaning: '탐험가'}, {word: 'pick up', meaning: '(어깨너머로) 배우다, 알게 되다'}, {word: 'invent', meaning: '발명하다'},
-        {word: 'slice', meaning: '얇은 조각'}, {word: 'habit', meaning: '습관'}, {word: 'spend', meaning: '쓰다, 소비하다'},
-        {word: 'survey', meaning: '설문 조사'}, {word: 'result', meaning: '결과'}, {word: 'majority', meaning: '대다수, 과반수'},
-        {word: 'manage', meaning: '관리하다'}, {word: 'effort', meaning: '노력'}, {word: 'allowance', meaning: '용돈'},
-        {word: 'have difficulty ~ing', meaning: '~하는 데 어려움을 겪다'}, {word: 'save', meaning: '저축하다, 모으다'}, {word: 'lastly', meaning: '마지막으로'},
-        {word: 'weekly', meaning: '매주의'}, {word: 'solve', meaning: '해결하다, 풀다'}, {word: 'problem', meaning: '문제'},
-        {word: 'diary', meaning: '일기, 수첩'}, {word: 'use up', meaning: '다 써버리다'}, {word: 'beginning', meaning: '시작, 초반'},
-        {word: 'tip', meaning: '조언, 유용한 정보'}, {word: 'carry around', meaning: '가지고 다니다'}, {word: 'divide', meaning: '나누다, 쪼개다'},
-        {word: 'balance', meaning: '잔고, 잔액'}, {word: 'for example', meaning: '예를 들어'}, {word: 'concert', meaning: '콘서트, 공연'},
-        {word: 'tight', meaning: '빠듯한, 여유가 없는'}, {word: 'budget', meaning: '예산, 비용'}, {word: 'rule', meaning: '규칙'},
-        {word: 'donate', meaning: '기부하다'}, {word: 'remaining', meaning: '남은, 남아있는'}, {word: 'charity', meaning: '자선 단체'},
-        {word: 'follow', meaning: '따르다, 지키다'}, {word: 'on sale', meaning: '할인 판매 중인'}, {word: 'although', meaning: '비록 ~일지라도'},
-        {word: 'already', meaning: '이미, 벌써'}, {word: 'case', meaning: '경우, 상황'}, {word: 'advice', meaning: '조언, 충고'},
-        {word: 'item', meaning: '물품, 품목'}, {word: 'even if', meaning: '비록 ~일지라도'}, {word: 'on the spot', meaning: '즉석에서, 그 자리에서'},
-        {word: 'worry', meaning: '걱정, 고민거리'}, {word: 'smart', meaning: '현명한, 똑똑한'}
+       {word: 'joy', meaning: '기쁨'}, {word: 'travel', meaning: '여행하다'}, {word: 'vacation', meaning: '방학, 휴가'},
+        {word: 'awesome', meaning: '멋진, 기막히게 좋은'}, {word: 'gondola', meaning: '곤돌라'}, {word: 'lesson', meaning: '수업, 교훈'},
+        {word: 'surf', meaning: '파도타기를 하다'}, {word: 'aunt', meaning: '이모, 고모, 숙모'}, {word: 'camping', meaning: '야영, 캠핑'},
+        {word: 'trail', meaning: '오솔길, 산길'}, {word: 'explain', meaning: '설명하다'}, {word: 'schedule', meaning: '일정, 시간표'},
+        {word: 'musical', meaning: '뮤지컬'}, {word: 'museum', meaning: '박물관'}, {word: 'amusement park', meaning: '놀이공원'},
+        {word: 'join', meaning: '함께하다, 합류하다'}, {word: 'order', meaning: '주문하다'}, {word: 'yummy', meaning: '아주 맛있는'},
+        {word: 'look forward to', meaning: '~을 기대하다'}, {word: 'colorful', meaning: '다채로운, 화려한'}, {word: 'village', meaning: '마을'},
+        {word: 'building', meaning: '건물'}, {word: 'cliff', meaning: '절벽'}, {word: 'view', meaning: '경관, 전망'},
+        {word: 'fantastic', meaning: '환상적인'}, {word: 'terrace', meaning: '테라스'}, {word: 'especially', meaning: '특히'},
+        {word: 'spend', meaning: '쓰다, 보내다'}, {word: 'perfect', meaning: '완벽한'}, {word: 'pay', meaning: '지불하다'},
+        {word: 'entrance fee', meaning: '입장료'}, {word: 'rental', meaning: '대여, 임대'}, {word: 'explore', meaning: '탐험하다, 답사하다'},
+        {word: 'pearl', meaning: '진주'}, {word: 'narrow', meaning: '좁은'}, {word: 'souvenir', meaning: '기념품'},
+        {word: 'local', meaning: '현지인, 주민'}, {word: 'famous', meaning: '유명한'}, {word: 'sunrise', meaning: '일출, 해돋이'},
+        {word: 'early', meaning: '일찍'}, {word: 'different', meaning: '다른'}, {word: 'attitude', meaning: '태도'},
+        {word: 'result', meaning: '결과'}, {word: 'hold', meaning: '개최하다, 열다'}, {word: 'contest', meaning: '대회, 경연'},
+        {word: 'enter', meaning: '참가하다, 들어가다'}, {word: 'kid', meaning: '농담하다'}, {word: 'terrible', meaning: '끔찍한, 형편없는'},
+        {word: 'interested', meaning: '관심 있는'}, {word: 'guess', meaning: '추측하다'}, {word: 'happen', meaning: '일어나다, 발생하다'},
+        {word: 'situation', meaning: '상황'}, {word: 'mistake', meaning: '실수'}, {word: 'text', meaning: '문자를 보내다'},
+        {word: 'tired', meaning: '피곤한'}, {word: 'waste', meaning: '낭비하다'}, {word: 'fault', meaning: '잘못, 책임'},
+        {word: 'quit', meaning: '그만두다, 포기하다'}, {word: 'hopeless', meaning: '절망적인, 가망 없는'}, {word: 'practice', meaning: '연습하다; 연습'},
+        {word: 'cheer up', meaning: '기운을 내다, 격려하다'}, {word: 'worry', meaning: '걱정하다'}, {word: 'almost', meaning: '거의'},
+        {word: 'prize', meaning: '상'}, {word: 'finish', meaning: '끝내다, 마치다'}, {word: 'proud', meaning: '자랑스러운'},
+        {word: 'support', meaning: '지지, 응원'}, {word: 'sick', meaning: '아픈'}, {word: 'agree', meaning: '동의하다'},
+        {word: 'tomorrow', meaning: '내일'}
     ];
 
-    // 패치 적용: 병하전자, 대송 비스트 홀딩스, JH엔터로 변경 및 가격/변동성 수정
     const INITIAL_STOCKS = [
         { id: 's1', name: '🤖 DS AI랩스', price: 10000, history: [10000], vol: 0.40 },
-        { id: 's2', name: '🪖 경식디펜스', price: 6000, history: [6000], vol: 0.45 },
+        { id: 's2', name: '🪖 경식디펜스', price: 5000, history: [5000], vol: 0.55 },
         { id: 's3', name: '🚀 예린스페이스', price: 20000, history: [20000], vol: 0.45 },
-        { id: 's4', name: '🧬 YG바이오', price: 8000, history: [8000], vol: 0.55 },
+        { id: 's4', name: '🧬 YG바이오', price: 8000, history: [8000], vol: 0.65 },
         { id: 's5', name: '🐳 병하전자', price: 30000, history: [30000], vol: 0.25 },
-        { id: 's6', name: '🦁 대송 비스트 홀딩스', price: 700, history: [700], vol: 0.90 }, // 극단적 동전주
-        { id: 's7', name: '🛒 유진커머스', price: 3000, history: [3000], vol: 0.30 },
-        { id: 's8', name: '🎮 다솜게임즈', price: 15000, history: [15000], vol: 0.45 },
+        { id: 's6', name: '🪙 비스트하트 코인', price: 700, history: [700], vol: 0.95 }, 
+        { id: 's7', name: '🛒 유진커머스', price: 3000, history: [3000], vol: 0.40 },
+        { id: 's8', name: '🎮 다솜게임즈', price: 15000, history: [15000], vol: 0.35 },
         { id: 's9', name: '♻️ 형진에코', price: 12000, history: [12000], vol: 0.55 },
         { id: 's10', name: '💰 경환캐피탈', price: 25000, history: [25000], vol: 0.15 },
         { id: 's11', name: '🎤 JH엔터', price: 10000, history: [10000], vol: 0.50 },
@@ -275,7 +276,7 @@
             hintMsg: "🌠 속보: 민간 우주 탐사선 발사 D-1!<br>우주 산업의 역사가 새로 쓰일지 전 세계가 주목합니다.", 
             results: [
                 { resultMsg: "🚀 예린스페이스, 성공적으로 궤도 안착!<br>우주 관광 시대가 열립니다.<br>[예린스페이스 떡상]", targets: ['s3'], impact: 0.35 },
-                { resultMsg: "🚀 예린스페이스, 쏜 로켓이 대송중 운동장에 추락!<br>부서진 밭의 배추값만 금값이 되었습니다.<br>[스페이스 떡락, 커머스 상승]", targets: ['s3'], impact: -0.30, down_targets: ['s7'], down_impact: 0.15 },
+                { resultMsg: "🚀 예린스페이스, 쏜 로켓이 대송중 운동장에 추락!<br>학생들만 신났습니다.<br>[스페이스 떡락, 커머스 상승]", targets: ['s3'], impact: -0.30, down_targets: ['s7'], down_impact: 0.15 },
                 { resultMsg: "🚀 예린스페이스, 발사체 점화 불량으로 무기한 발사 연기.<br>실망 매물 쏟아짐.<br>[스페이스 하락]", targets: ['s3'], impact: -0.20 }
             ]
         },
@@ -295,12 +296,11 @@
                 { resultMsg: "🐳 병하전자, 수주는 실패했지만 자체 칩 개발 호재 발표!<br>[병하전자 소폭 상승]", targets: ['s5'], impact: 0.15 }
             ]
         },
-        // 대송 비스트 홀딩스 전용 뉴스 변경
         { 
-            hintMsg: "🐾 속보: 대송 비스트 홀딩스 사옥 지하실에서 괴상한 짐승의 울음소리가 들린다는 제보!", 
+            hintMsg: "🚨 속보: 정체불명의 가상화폐 '비스트하트 코인' 관련 초대형 찌라시 확산 중!", 
             results: [
-                { resultMsg: "🦁 대송 비스트 홀딩스, 공룡을 복원해 글로벌 보안 사업에 진출 선언!<br>대박 호재에 주가 미친듯 폭등!<br>[비스트 홀딩스 폭등]", targets: ['s6'], impact: 0.80 },
-                { resultMsg: "🦁 대송 비스트 홀딩스, 알고 보니 사장님의 지독한 코골이 소리로 밝혀짐...<br>전 세계적인 웃음거리가 되며 개미들 피눈물!<br>[비스트 홀딩스 폭락]", targets: ['s6'], impact: -0.60 }
+                { resultMsg: "🪙 비스트하트 코인, 유명 팝스타가 하트 이모티콘과 함께 매수 인증샷 게시!\n전 세계 개미들 탑승하며 미친듯 폭등!<br>[비스트하트 코인 폭등]", targets: ['s6'], impact: 0.80 },
+                { resultMsg: "🪙 비스트하트 코인, 개발자가 코인 전량 매도 후 잠적한 것으로 밝혀짐...\n전 세계적인 웃음거리가 되며 개미들 피눈물!<br>[비스트하트 코인 폭락]", targets: ['s6'], impact: -0.60 }
             ]
         },
         { 
@@ -315,7 +315,7 @@
             hintMsg: "🛸 속보: 글로벌 게임쇼 개막! 대형 신작 발표 예정.<br>게이머들의 기대감이 최고조에 달하고 있습니다.", 
             results: [
                 { resultMsg: "🎮 다솜게임즈, 신작 트레일러 공개에 전 세계 유저들 환호!<br>올해의 고티(GOTY) 예약 완료.<br>[다솜게임즈 급등]", targets: ['s8'], impact: 0.30 },
-                { resultMsg: "🎮 다솜게임즈, 신작 버그로 캐릭터들이 하늘을 수영함!<br>오히려 바이럴되어 되어 글로벌 대히트!<br>[다솜게임즈 상승]", targets: ['s8'], impact: 0.20 },
+                { resultMsg: "🎮 다솜게임즈, 신작 버그로 캐릭터들이 하늘을 수영함!<br>오히려 개그 밈(Meme)이 되어 글로벌 대히트!<br>[다솜게임즈 상승]", targets: ['s8'], impact: 0.20 },
                 { resultMsg: "🎮 다솜게임즈, 신작 발표 무난하게 종료.<br>특별한 호재 없이 차익 실현 매물 쏟아짐.<br>[다솜게임즈 소폭 하락]", targets: ['s8'], impact: -0.15 }
             ]
         },
@@ -323,7 +323,7 @@
             hintMsg: "❌ 속보: 환경부, 폐기물 무단투기 특별 단속 기간 선포!<br>친환경 기업들의 옥석 가리기가 시작됩니다.", 
             results: [
                 { resultMsg: "♻️ 형진에코, 쓰레기를 연료로 바꾸는 마법의 소각로 발명!<br>전 세계 쓰레기를 수입해오고 있습니다.<br>[형진에코 떡상]", targets: ['s9'], impact: 0.35 },
-                { resultMsg: "♻️ 형진에코, 사장님이 몰래 킥보드 타고 쓰레기 무단투기하다 CCTV에 적발!<br>친환경 기업의 민낯이 드러났습니다.<br>[형진에코 나락]", targets: ['s9'], impact: -0.35 },
+                { resultMsg: "♻️ 형진에코, 사장님이 몰래 킥보드 타고 쓰레기 투기하다 CCTV에 적발!<br>친환경 기업의 민낯이 드러났습니다.<br>[형진에코 나락]", targets: ['s9'], impact: -0.35 },
                 { resultMsg: "♻️ 형진에코, 무단투기 논란 해명 성공! 오히려 모범 기업 표창.<br>[형진에코 반등]", targets: ['s9'], impact: 0.20 }
             ]
         },
@@ -336,17 +336,17 @@
             ]
         },
         { 
-            hintMsg: "👨‍🌾 속보: 초대형 엔터 그룹, 간판 멤버들의 불화 및 탈퇴설?!<br>팬들의 불안감이 주식 시장에 반영되고 있습니다.", 
+            hintMsg: "👨‍🌾 속보: 초대형 엔터 그룹, 간판 멤버 탈퇴설 솔솔~<br>팬들의 불안감이 주식 시장에 반영되고 있습니다.", 
             results: [
                 { resultMsg: "🎤 JH엔터, 탈퇴한 멤버 빼고 남은 멤버들이 빌보드 1위 달성!<br>오히려 전화위복이 되었습니다.<br>[JH엔터 떡상]", targets: ['s11'], impact: 0.35 },
-                { resultMsg: "🎤 JH엔터, 그룹 리더가 돌연 은퇴하고 슬도에 낚시하러 떠남!<br>엔터주는 나락가고 낚시가게만 웃음.<br>[JH엔터 폭락]", targets: ['s11'], impact: -0.40 },
+                { resultMsg: "🎤 JH엔터, 그룹 리더가 돌연 귀농 선언하고 배추 심으러 떠남!<br>엔터주는 나락가고 농기계 렌탈업만 신났습니다.<br>[JH엔터 폭락]", targets: ['s11'], impact: -0.40 },
                 { resultMsg: "🎤 JH엔터, 탈퇴설은 노이즈 마케팅으로 판명!<br>어그로 성공으로 팬클럽 가입자 급증.<br>[JH엔터 상승]", targets: ['s11'], impact: 0.20 }
             ]
         },
         { 
             hintMsg: "🤮 속보: 식품 업계, 파격적인 '괴식' 트렌드 예고!<br>기괴한 신제품 출시에 제과업계 주가가 꿈틀댑니다.", 
             results: [
-                { resultMsg: "🍩 지원베이커리, '민트초코 떡볶이' 대출시!<br>끔찍한 맛으로 SNS 먹방 챌린지가 대유행하며 매출 폭발!<br>[지원베이커리 상승]", targets: ['s12'], impact: 0.25 },
+                { resultMsg: "🍩 지원베이커리, '민트초코 떡볶이맛' 대출시!<br>끔찍한 맛으로 SNS 먹방 챌린지가 대유행하며 매출 폭발!<br>[지원베이커리 상승]", targets: ['s12'], impact: 0.25 },
                 { resultMsg: "🍩 지원베이커리, 괴식을 먹은 소비자들 단체 복통 호소.<br>소화제 수요 폭증으로 바이오 기업만 신났습니다.<br>[베이커리 폭락, 바이오 상승]", targets: ['s12'], impact: -0.30, down_targets: ['s4'], down_impact: 0.20 },
                 { resultMsg: "🍩 지원베이커리, 기괴한 맛에 선넘었다며 소비자 불매 운동 조짐...<br>[지원베이커리 하락]", targets: ['s12'], impact: -0.15 }
             ]
@@ -390,14 +390,13 @@
 
     const ITEMS = [
         { id: 'i1', name: '🍀 행운의 펜던트', tier: 'S', type: 'active_self', desc: '사용 시 영구적으로 내 아이템 획득 확률이 10% 증가합니다.' },
-        { id: 'i2', name: '⚖️ 운명의 부름', tier: 'S', type: 'active_player', desc: '선택한 다른 사람과 나의 모든 자산을 통째로 바꿉니다.' },
         { id: 'i21', name: '✋ 나쁜 손', tier: 'S', type: 'active_player_item', desc: '선택한 플레이어의 가방에서 랜덤으로 아이템 1개를 훔쳐옵니다.' },
-        { id: 'i10', name: '🛡️ 방탄조끼', tier: 'A', type: 'active_self', desc: '사용 시 다음 1회의 공격(자산 스왑, 강탈 등)을 자동으로 막아냅니다.' }, // A급으로 하향
+        { id: 'i18', name: '😋 적대적 인수', tier: 'S', type: 'active_player_yummy', desc: '상대방을 지정하고 보유 주식을 확인한 뒤, 그 종목의 절반(50%)을 뺏어옵니다.' },
+        { id: 'i4', name: '🥷 소매치기', tier: 'S', type: 'active_player', desc: '선택한 사람의 현금 중 50%를 훔쳐옵니다.' },
+        { id: 'i10', name: '🛡️ 방탄조끼', tier: 'A', type: 'active_self', desc: '사용 시 다음 1회의 공격(자산 스왑, 강탈 등)을 자동으로 막아냅니다. (여러 개 중첩 가능)' },
         { id: 'i3', name: '🤫 회장님의 조언', tier: 'A', type: 'active_self', desc: '다음 장에서 크게 변동할 주식 종목 하나를 알아냅니다.' },
         { id: 'i19', name: '📉 하락장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 후 사용하면 다음에 폭락할 주식 정보를 정확히 스포일러합니다.' },
         { id: 'i20', name: '📈 상승장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 후 사용하면 다음에 폭등할 주식 정보를 정확히 스포일러합니다.' },
-        { id: 'i4', name: '🥷 소매치기', tier: 'A', type: 'active_player', desc: '선택한 사람의 현금 중 10%를 훔쳐옵니다.' },
-        { id: 'i18', name: '😋 야미', tier: 'A', type: 'active_player_yummy', desc: '상대방을 지정하고 보유 주식을 확인한 뒤, 그 종목을 전부 뺏어옵니다.' },
         { id: 'i5', name: '❄️ 아이스 에이지', tier: 'A', type: 'active_global', desc: '나를 제외한 모든 사람들을 6초간 행동 불가로 만듭니다.' },
         { id: 'i17', name: '🛑 서킷 브레이커', tier: 'A', type: 'active_global', desc: '주식 시장의 모든 거래를 10초간 정지시킵니다.' },
         { id: 'i11', name: '📖 오픈북 찬스', tier: 'A', type: 'active_self', desc: '다음 5번의 퀴즈에서 오답 보기가 모두 사라집니다.' },
@@ -686,7 +685,7 @@
             let existingPlayer = players.find(p => p.id === data.uid);
             if (!existingPlayer) {
                 if(conn) hostConns[data.uid] = conn;
-                players.push({ id: data.uid, name: data.name, cash: 5000, portfolio: {}, avgPrice: {}, items: [], dropBonus: 0, tradeCount: 0, correctAnswers: 0, earnedFromQuiz: 0, itemUseCount: 0, openBookCount: 0, blindedUntil: 0, hasShield: false });
+                players.push({ id: data.uid, name: data.name, cash: 5000, portfolio: {}, avgPrice: {}, items: [], dropBonus: 0, tradeCount: 0, correctAnswers: 0, earnedFromQuiz: 0, itemUseCount: 0, openBookCount: 0, blindedUntil: 0, shieldCount: 0 });
                 roomState.chats.push({ uid: 'system', name: '시스템', text: `${data.name}님이 입장하셨습니다.` });
                 hostBroadcast();
             } else {
@@ -701,6 +700,7 @@
         if(!p) p = { name: 'Host' };
 
         if (!p.avgPrice) p.avgPrice = {};
+        if (p.shieldCount === undefined) p.shieldCount = 0; 
 
         if (data.type === 'CHAT') {
             roomState.chats.push({ uid: data.uid, name: p.name, text: data.text });
@@ -751,7 +751,6 @@
 
             if (isBottom3) earned *= 2;
 
-            // 지원베이커리 (s12) 추가 보너스 처리
             let bakeryBonus = 0;
             if (p.portfolio['s12'] > 0) {
                 bakeryBonus = p.portfolio['s12'] * 500;
@@ -766,6 +765,7 @@
             let dropRate = 0.10 + (p.dropBonus || 0);
             if (isBottom3) dropRate += 0.50;
 
+            let acquiredItem = null;
             if (Math.random() < dropRate) {
                 let r2 = Math.random();
                 if (isBottom3) r2 = r2 * 0.3;
@@ -779,24 +779,23 @@
                     sendToPlayer(data.uid, { type: 'EVENT_ITEM_FULL' }, conn);
                 } else {
                     p.items.push(item);
-                    sendToPlayer(data.uid, { type: 'EVENT_ITEM_GOT', item: item }, conn);
+                    acquiredItem = item; 
                 }
             }
-            sendToPlayer(data.uid, { type: 'EVENT_QUIZ_RESULT', earned: earned, bakeryBonus: bakeryBonus }, conn);
+            sendToPlayer(data.uid, { type: 'EVENT_QUIZ_RESULT', earned: earned, bakeryBonus: bakeryBonus, item: acquiredItem }, conn);
         } 
         else if (data.type === 'USE_ITEM') {
-            // 정보 아이템 타이밍 제한
             if ((data.itemId === 'i19' || data.itemId === 'i20') && roomState.phase !== 'hint') {
                 sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '이 아이템은 [예측 힌트]가 화면에 떴을 때 사용해야 정확한 결과를 알 수 있습니다!\n(아이템을 돌려받았습니다)' }, conn);
-                return; // 소모하지 않고 취소
+                return; 
             }
 
             p.items.splice(data.itemIdx, 1);
             p.itemUseCount = (p.itemUseCount || 0) + 1;
             
             if (data.itemId === 'i10') {
-                p.hasShield = true;
-                sendToPlayer(data.uid, { type: 'EVENT_SHIELD_ON' }, conn);
+                p.shieldCount = (p.shieldCount || 0) + 1;
+                sendToPlayer(data.uid, { type: 'EVENT_SHIELD_ON', count: p.shieldCount }, conn);
             } else if (data.itemId === 'i1') {
                 p.dropBonus = (p.dropBonus || 0) + 0.1;
                 sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '영구적으로 아이템 획득 확률이 10% 증가했습니다!' }, conn);
@@ -837,44 +836,33 @@
                 p.openBookCount = 5;
                 sendToPlayer(data.uid, { type: 'EVENT_OPENBOOK' }, conn);
             }
-            else if (data.itemId === 'i2') { 
+            else if (data.itemId === 'i4') { 
                 let target = players.find(x => x.id === data.targetId);
                 if(target) {
-                    if (target.hasShield) {
-                        target.hasShield = false;
-                        sendToPlayer(target.id, { type: 'EVENT_DEFENDED', from: p.name }, hostConns[target.id] || null);
+                    if (target.shieldCount > 0) {
+                        target.shieldCount--;
+                        sendToPlayer(target.id, { type: 'EVENT_DEFENDED', from: p.name, remain: target.shieldCount }, hostConns[target.id] || null);
                         sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: target.name }, conn);
                     } else {
-                        let tc = p.cash; let tp = {...p.portfolio}; let ta = {...(p.avgPrice||{})};
-                        p.cash = target.cash; p.portfolio = {...target.portfolio}; p.avgPrice = {...(target.avgPrice||{})};
-                        target.cash = tc; target.portfolio = tp; target.avgPrice = ta;
-                        sendToPlayer(target.id, { type: 'EVENT_ATTACKED', attackType: 'swap', from: p.name }, hostConns[target.id] || null);
-                        sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님과 모든 자산을 성공적으로 바꿨습니다!` }, conn);
-                    }
-                }
-            } else if (data.itemId === 'i4') { 
-                let target = players.find(x => x.id === data.targetId);
-                if(target) {
-                    if (target.hasShield) {
-                        target.hasShield = false;
-                        sendToPlayer(target.id, { type: 'EVENT_DEFENDED', from: p.name }, hostConns[target.id] || null);
-                        sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: target.name }, conn);
-                    } else {
-                        let stolen = Math.floor(target.cash * 0.1);
+                        let stolen = Math.floor(target.cash * 0.5);
                         p.cash += stolen; target.cash -= stolen;
                         sendToPlayer(target.id, { type: 'EVENT_ATTACKED', attackType: 'steal', from: p.name, amt: stolen }, hostConns[target.id] || null);
                         sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님에게서 현금 ${stolen.toLocaleString()}원을 훔쳤습니다!` }, conn);
                     }
                 }
-            } else if (data.itemId === 'i18') { 
+            } 
+            else if (data.itemId === 'i18') { 
                 let target = players.find(x => x.id === data.targetId);
                 if(target && target.portfolio[data.stockId] > 0) {
-                    if (target.hasShield) {
-                        target.hasShield = false;
-                        sendToPlayer(target.id, { type: 'EVENT_DEFENDED', from: p.name }, hostConns[target.id] || null);
+                    if (target.shieldCount > 0) {
+                        target.shieldCount--;
+                        sendToPlayer(target.id, { type: 'EVENT_DEFENDED', from: p.name, remain: target.shieldCount }, hostConns[target.id] || null);
                         sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: target.name }, conn);
                     } else {
-                        let amt = target.portfolio[data.stockId];
+                        let totalAmt = target.portfolio[data.stockId];
+                        let amt = Math.floor(totalAmt / 2);
+                        if (amt <= 0 && totalAmt > 0) amt = 1; 
+                        
                         let oldAmt = p.portfolio[data.stockId] || 0;
                         let oldCost = oldAmt * (p.avgPrice[data.stockId] || 0);
                         let targetCost = target.avgPrice[data.stockId] || roomState.stocks.find(s=>s.id===data.stockId).price;
@@ -882,8 +870,11 @@
                         p.portfolio[data.stockId] = oldAmt + amt;
                         p.avgPrice[data.stockId] = (oldCost + (amt * targetCost)) / p.portfolio[data.stockId];
                         
-                        delete target.portfolio[data.stockId];
-                        delete target.avgPrice[data.stockId];
+                        target.portfolio[data.stockId] -= amt;
+                        if(target.portfolio[data.stockId] <= 0) {
+                            delete target.portfolio[data.stockId];
+                            delete target.avgPrice[data.stockId];
+                        }
                         
                         let stockName = roomState.stocks.find(s=>s.id===data.stockId).name;
                         sendToPlayer(target.id, { type: 'EVENT_ATTACKED_YUMMY', from: p.name, stockName, amt }, hostConns[target.id] || null);
@@ -892,12 +883,13 @@
                 } else {
                     sendToPlayer(data.uid, { type: 'EVENT_YUMMY_FAIL' }, conn);
                 }
-            } else if (data.itemId === 'i21') { 
+            } 
+            else if (data.itemId === 'i21') { 
                 let target = players.find(x => x.id === data.targetId);
                 if(target) {
-                    if (target.hasShield) {
-                        target.hasShield = false;
-                        sendToPlayer(target.id, { type: 'EVENT_DEFENDED', from: p.name }, hostConns[target.id] || null);
+                    if (target.shieldCount > 0) {
+                        target.shieldCount--;
+                        sendToPlayer(target.id, { type: 'EVENT_DEFENDED', from: p.name, remain: target.shieldCount }, hostConns[target.id] || null);
                         sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: target.name }, conn);
                     } else if (target.items.length > 0) {
                         let stealIdx = Math.floor(Math.random() * target.items.length);
@@ -928,9 +920,11 @@
                     s.pumpedUntil = Date.now() + 10000;
                     roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` });
                 }
-            } else if (data.itemId === 'i5') { 
+            } 
+            else if (data.itemId === 'i5') { 
                 const fTime = Date.now() + 6000; 
                 players.forEach(x => { if(x.id !== data.uid) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
+                roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! 자신을 제외한 모두가 6초간 얼어붙습니다.` });
                 sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `나를 제외한 모두를 6초간 얼려버렸습니다!` }, conn);
             } else if (data.itemId === 'i7') { 
                 let oldAmt = p.portfolio[data.targetId] || 0;
@@ -1094,7 +1088,7 @@
             status: 'lobby', endPhase: null, words: words, stocks: JSON.parse(JSON.stringify(INITIAL_STOCKS)),
             news: "개장 준비 중... 30초 후 첫 뉴스가 발표됩니다.", phase: 'wait', nextPhaseTime: 0, 
             nextEventIndex: 0, nextOutcomeIndex: 0, availableEvents: availableEvents,
-            durationMs: durationMs, endTime: 0, chats: [], circuitBreakerUntil: 0, circuitBreakerBy: ''
+            durationMs: durationMs, endTime: 0, chats: [], circuitBreakerUntil: 0, circuitBreakerBy: '', extraTimeTriggered: false
         };
         players = []; hostConns = {}; lastChatLength = 0;
 
@@ -1168,7 +1162,7 @@
             const el = document.getElementById('h-timer');
             if(el) el.innerText = `${Math.floor(tr/60).toString().padStart(2,'0')}:${(tr%60).toString().padStart(2,'0')}`;
             
-            if (now >= roomState.nextPhaseTime) {
+            if (now >= roomState.nextPhaseTime && !roomState.extraTimeTriggered) {
                 if (roomState.phase === 'wait' || roomState.phase === 'result') {
                     if(roomState.availableEvents.length === 0) {
                         roomState.availableEvents = Array.from({length: NEWS_EVENTS.length}, (_, i) => i);
@@ -1188,7 +1182,7 @@
                         if (outcome.targets && outcome.targets.includes(stock.id)) multi += outcome.impact;
                         if (outcome.down_targets && outcome.down_targets.includes(stock.id)) multi += outcome.down_impact;
                         let np = Math.floor(stock.price * multi);
-                        np = Math.max(50, Math.min(200000, np)); // 가격 하한선 50원으로 조정
+                        np = Math.max(50, Math.min(200000, np)); 
                         np = Math.round(np / 10) * 10;
                         stock.history.push(np);
                         if(stock.history.length > 100) stock.history.shift();
@@ -1199,14 +1193,12 @@
                     players.forEach(p => {
                         let divMsg = [];
                         let totalDiv = 0;
-                        // 경환캐피탈(s10) 5% 이자
                         if (p.portfolio['s10'] > 0) {
                             let s10Price = roomState.stocks.find(s=>s.id==='s10').price;
                             let amt = Math.floor(p.portfolio['s10'] * s10Price * 0.05);
                             p.cash += amt; totalDiv += amt;
                             divMsg.push(`[경환캐피탈] 예금 이자 ${amt.toLocaleString()}원`);
                         }
-                        // 병하전자(s5) 주당 1500원 배당
                         if (p.portfolio['s5'] > 0) {
                             let amt = p.portfolio['s5'] * 1500;
                             p.cash += amt; totalDiv += amt;
@@ -1223,10 +1215,14 @@
                             let oldName = stock.name;
                             let emojiMatch = oldName.match(/^([^\s]+)\s/);
                             let emoji = emojiMatch ? emojiMatch[1] : '📈';
-                            let rawName = oldName.replace(/^[^\s]+\s/, '');
+                            let rawName = oldName.replace(/^[^\s]+\s/, '').replace(/^뉴\(New\)\s/, ''); 
                             stock.name = `${emoji} 뉴(New) ${rawName}`;
-                            stock.price = 5000;
-                            stock.history.push(5000);
+                            
+                            let initialStock = INITIAL_STOCKS.find(s => s.id === stock.id);
+                            let resetPrice = initialStock ? initialStock.price : 5000;
+                            
+                            stock.price = resetPrice;
+                            stock.history.push(resetPrice);
                             
                             players.forEach(p => {
                                 if (p.portfolio[stock.id]) {
@@ -1263,7 +1259,41 @@
             });
             if (pumped) hostBroadcast();
             
-            if(tr <= 0) window.endGameRoom();
+            if(tr <= 0) {
+                if (!roomState.extraTimeTriggered) {
+                    roomState.extraTimeTriggered = true;
+                    roomState.endTime = Date.now() + 10500; 
+                    
+                    if(roomState.availableEvents.length === 0) roomState.availableEvents = Array.from({length: NEWS_EVENTS.length}, (_, i) => i);
+                    const rndIdx = Math.floor(Math.random() * roomState.availableEvents.length);
+                    roomState.nextEventIndex = roomState.availableEvents.splice(rndIdx, 1)[0];
+                    roomState.nextOutcomeIndex = Math.floor(Math.random() * NEWS_EVENTS[roomState.nextEventIndex].results.length);
+                    
+                    const outcome = NEWS_EVENTS[roomState.nextEventIndex].results[roomState.nextOutcomeIndex];
+                    roomState.stocks.forEach(stock => {
+                        let multi = 1 + (Math.random() * stock.vol * 2 - stock.vol);
+                        if (outcome.targets && outcome.targets.includes(stock.id)) multi += outcome.impact;
+                        if (outcome.down_targets && outcome.down_targets.includes(stock.id)) multi += outcome.down_impact;
+                        let np = Math.floor(stock.price * multi);
+                        np = Math.max(50, Math.min(200000, np)); 
+                        np = Math.round(np / 10) * 10;
+                        stock.history.push(np);
+                        if(stock.history.length > 100) stock.history.shift();
+                        stock.price = np;
+                    });
+                    
+                    roomState.news = "🚨 [최종 마감 직전 폭풍 변동!]\n" + outcome.resultMsg;
+                    roomState.phase = 'result';
+                    roomState.chats.push({ uid: 'system', name: '시스템', text: '🚨 00:00 시간 종료! 최종 시장 폭풍 변동이 몰아쳤습니다! 10초 후 게임이 마감됩니다!' });
+                    
+                    Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_EXTRA_TIME'}); });
+                    if(bc) bc.postMessage({type: 'EVENT_EXTRA_TIME', targetUid: 'all'});
+                    
+                    hostBroadcast();
+                } else {
+                    window.endGameRoom();
+                }
+            }
         }, 1000);
     };
 
@@ -1288,8 +1318,8 @@
         savedSession = { roomCode: c, uid: myUid, name: n };
 
         let joinTimeout = setTimeout(() => {
-            if (!myData) { showCustomPopup("접속 지연", "방을 찾을 수 없거나 호스트가 종료했습니다.", "⏳", "bg-orange-600"); window.renderHome(); }
-        }, 5000); 
+            if (!myData) { showCustomPopup("접속 지연", "네트워크가 불안정합니다. 다시 시도해주세요.", "⏳", "bg-orange-600"); window.renderHome(); }
+        }, 10000); 
 
         const handleSync = (data) => {
             if (joinTimeout) { clearTimeout(joinTimeout); joinTimeout = null; }
@@ -1333,10 +1363,21 @@
                 isWaitingForResult = false;
                 window.vibrateDevice(50); window.flashScreen('bg-green-400/30'); window.playSound('coin');
                 let extraMsg = data.bakeryBonus > 0 ? `\n(지원베이커리 혜택 +${data.bakeryBonus.toLocaleString()}원 포함!)` : '';
+                
+                if (data.item) {
+                    window.playSound('item');
+                    extraMsg += `\n\n🎁 [${data.item.tier}급] ${data.item.name} 획득!`;
+                }
+                
                 showCustomPopup("정답!", `총 ${data.earned.toLocaleString()}원을 확보했습니다.${extraMsg}`, "⭕", "bg-green-600");
                 quizCurrentQuestion = null;
                 document.getElementById('player-game-container').outerHTML = '';
                 renderPlayerGame();
+            }
+            else if (data.type === 'EVENT_EXTRA_TIME' && (data.targetUid === 'all' || data.targetUid === myUid)) {
+                window.playSound('siren');
+                window.flashScreen('bg-red-600/50');
+                showCustomPopup('🚨 시간 종료! 라스트 댄스 10초!', '00:00 시간 마감! 마지막 시장 대폭풍 변동이 적용되었습니다!\n정확히 10초 후 최종 마감 시상식으로 이동합니다!', '⏰', 'bg-red-800', 4000);
             }
             else if (data.type === 'EVENT_DIVIDEND' && data.targetUid === myUid) {
                 window.playSound('coin');
@@ -1354,17 +1395,13 @@
                 document.getElementById('player-game-container')?.remove();
                 renderPlayerGame();
             }
-            else if (data.type === 'EVENT_ITEM_GOT' && data.targetUid === myUid) { 
-                window.playSound('item');
-                showCustomPopup('아이템 획득!', `${data.item.tier}급 ${data.item.name} 획득!`, '🎁', 'bg-gradient-to-br from-purple-500 to-indigo-600'); 
-            }
             else if (data.type === 'EVENT_ITEM_EFFECT' && data.targetUid === myUid) {
                 window.playSound('item');
                 showCustomPopup('아이템 사용', data.msg, '✨', 'bg-indigo-600');
             }
             else if (data.type === 'EVENT_SHIELD_ON' && data.targetUid === myUid) {
                 window.playSound('item');
-                showCustomPopup('🛡️ 방어막 가동!', '다음 1회의 공격을 자동으로 방어합니다.', '🛡️', 'bg-blue-600');
+                showCustomPopup('🛡️ 방어막 가동!', `방어막이 활성화 되었습니다.\n(현재 방어 횟수: ${data.count}회)`, '🛡️', 'bg-blue-600');
                 document.getElementById('player-game-container').outerHTML = '';
                 renderPlayerGame();
             }
@@ -1382,17 +1419,18 @@
             }
             else if (data.type === 'EVENT_ATTACKED_YUMMY' && data.targetUid === myUid) {
                 window.vibrateDevice([200, 100, 200]); window.flashScreen('bg-purple-500/50'); window.playSound('attacked');
-                showCustomPopup('🚨 야미 공격!', `${data.from}님이 당신의 [${data.stockName}] 주식\n${data.amt}주를 전부 뺏어갔습니다!`, '😋', 'bg-purple-800');
+                showCustomPopup('🚨 적대적 인수 당함!', `${data.from}님이 당신의 [${data.stockName}] 주식\n지분의 절반(${data.amt}주)을 강제로 인수 합병했습니다!`, '😋', 'bg-purple-800');
             }
             else if (data.type === 'EVENT_YUMMY_SUCCESS' && data.targetUid === myUid) {
                 window.playSound('coin'); window.flashScreen('bg-green-400/30');
-                showCustomPopup('🎯 냠냠!', `${data.targetName}님의 [${data.stockName}] 주식\n${data.amt}주를 뺏어왔습니다!`, '😋', 'bg-green-600');
+                showCustomPopup('🎯 인수 성공!', `${data.targetName}님의 [${data.stockName}] 주식\n절반(${data.amt}주)을 강제로 빼앗아왔습니다!`, '😋', 'bg-green-600');
             }
             else if (data.type === 'EVENT_YUMMY_FAIL' && data.targetUid === myUid) {
                 showCustomPopup('❌ 텅~', `아쉽지만 상대방이 해당 주식을 더이상 안 가지고 있습니다.`, '😋', 'bg-slate-700');
             }
             else if (data.type === 'EVENT_DEFENDED' && data.targetUid === myUid) {
-                window.vibrateDevice([100, 100]); showCustomPopup('🛡️ 방어 성공!', `${data.from}님의 치명적인 공격을 방어막으로 막아냈습니다!`, '🛡️', 'bg-blue-700');
+                window.vibrateDevice([100, 100]); 
+                showCustomPopup('🛡️ 방어 성공!', `${data.from}님의 치명적인 공격을 방어막으로 막아냈습니다!\n(남은 방어 횟수: ${data.remain}회)`, '🛡️', 'bg-blue-700');
                 document.getElementById('player-game-container').outerHTML = '';
                 renderPlayerGame();
             }
@@ -1415,12 +1453,12 @@
                         div.style.left = (5 + Math.random()*60) + '%';
                         div.style.top = (5 + Math.random()*60) + '%';
                         div.style.transform = `rotate(${(Math.random()-0.5)*30}deg)`;
-                        div.style.pointerEvents = 'auto'; // 터치 버그 픽스
+                        div.style.pointerEvents = 'auto'; 
                         div.innerHTML = `<div class="text-3xl mb-2">📰</div><div class="text-white font-black whitespace-pre-wrap pointer-events-none">${data.news}</div><div class="text-xs text-yellow-300 mt-2 font-bold animate-pulse pointer-events-none">(터치해서 닫기)</div>`;
                         
                         const closeFunc = function(e) { e.preventDefault(); e.stopPropagation(); window.playSound('tick'); this.remove(); };
                         div.onclick = closeFunc;
-                        div.ontouchstart = closeFunc; // 모바일 터치 대응
+                        div.ontouchstart = closeFunc; 
                         
                         document.body.appendChild(div);
                     }, i * 150);
@@ -1447,12 +1485,9 @@
 
     const handleAttacked = (data) => {
         window.playSound('attacked');
-        if(data.attackType === 'swap') {
-            window.vibrateDevice([200, 100, 200]); window.flashScreen('bg-red-500/50');
-            showCustomPopup('🚨 비상 사태!', `${data.from}님이 [운명의 부름]으로\n당신의 자산과 맞바꿨습니다!`, '⚖️', 'bg-red-700');
-        } else if (data.attackType === 'steal') {
+        if (data.attackType === 'steal') {
             window.vibrateDevice([100, 100, 100]); window.flashScreen('bg-purple-500/50');
-            showCustomPopup('💸 소매치기 당함!', `${data.from}님이 당신의 현금\n${data.amt.toLocaleString()}원을 훔쳐갔습니다!`, '🥷', 'bg-purple-700');
+            showCustomPopup('💸 소매치기 당함!', `${data.from}님이 당신의 현금 지분의 무려 50%인\n${data.amt.toLocaleString()}원을 강탈해갔습니다!`, '🥷', 'bg-purple-700');
         }
     };
 
@@ -1493,6 +1528,52 @@
                 if(s) totalAsset += s.price * amt;
             });
 
+            // 랭킹 데이터 계산
+            let sortedRank = players.map(pl => {
+                let ast = pl.cash;
+                Object.entries(pl.portfolio||{}).forEach(([k,v]) => { const st = roomState.stocks.find(x=>x.id===k); if(st) ast += st.price*v; });
+                return { id: pl.id, name: pl.name, ast: ast };
+            }).sort((a,b) => b.ast - a.ast);
+
+            let top10 = sortedRank.slice(0, 10);
+            let myRankIndex = sortedRank.findIndex(p => p.id === myUid);
+            let myRankInfo = myRankIndex !== -1 ? sortedRank[myRankIndex] : { name: myData.name, ast: totalAsset };
+            let myRankStr = myRankIndex !== -1 ? `${myRankIndex + 1}위` : '-';
+
+            const renderRankItem = (p, idx) => {
+                const isMe = p.id === myUid;
+                const rankColor = idx === 0 ? 'text-yellow-400' : (idx === 1 ? 'text-slate-300' : (idx === 2 ? 'text-orange-400' : 'text-slate-400'));
+                const bgClass = isMe ? 'bg-indigo-900/60 border-indigo-500' : 'bg-slate-800 border-slate-700';
+                return `<div class="flex justify-between items-center p-2 rounded-lg border ${bgClass} shadow-sm text-xs md:text-sm">
+                            <div class="flex items-center gap-2 truncate pr-2">
+                                <span class="font-black w-4 md:w-5 text-center ${rankColor}">${idx + 1}</span>
+                                <span class="font-bold text-white truncate ${isMe ? 'text-indigo-300' : ''}">${p.name}</span>
+                            </div>
+                            <span class="font-black text-emerald-400 shrink-0">${p.ast.toLocaleString()}원</span>
+                        </div>`;
+            };
+
+            let rankHtml = top10.map((p, i) => renderRankItem(p, i)).join('');
+            let myRankHtml = `<div class="flex justify-between items-center p-2 md:p-3 rounded-lg border border-indigo-400 bg-indigo-600/30 shadow-md text-xs md:text-sm mt-1">
+                                <div class="flex items-center gap-2 truncate pr-2">
+                                    <span class="font-black w-5 md:w-6 text-center text-yellow-300">${myRankStr}</span>
+                                    <span class="font-black text-white truncate text-indigo-200">나 (${myRankInfo.name})</span>
+                                </div>
+                                <span class="font-black text-emerald-400 shrink-0">${myRankInfo.ast.toLocaleString()}원</span>
+                            </div>`;
+
+            // PC 랭킹 업데이트
+            const desktopList = document.getElementById('desktop-ranking-list');
+            const desktopMyRank = document.getElementById('desktop-my-rank');
+            if(desktopList && desktopList.dataset.lastHtml !== rankHtml) { desktopList.innerHTML = rankHtml; desktopList.dataset.lastHtml = rankHtml; }
+            if(desktopMyRank && desktopMyRank.dataset.lastHtml !== myRankHtml) { desktopMyRank.innerHTML = myRankHtml; desktopMyRank.dataset.lastHtml = myRankHtml; }
+
+            // 모바일 랭킹 업데이트
+            const mobileList = document.getElementById('mobile-ranking-list');
+            const mobileMyRank = document.getElementById('mobile-my-rank');
+            if(mobileList && mobileList.dataset.lastHtml !== rankHtml) { mobileList.innerHTML = rankHtml; mobileList.dataset.lastHtml = rankHtml; }
+            if(mobileMyRank && mobileMyRank.dataset.lastHtml !== myRankHtml) { mobileMyRank.innerHTML = myRankHtml; mobileMyRank.dataset.lastHtml = myRankHtml; }
+
             const assetEl = document.getElementById('player-total-asset');
             const cashEl = document.getElementById('player-cash');
             if(assetEl) assetEl.innerText = `${totalAsset.toLocaleString()} 원`;
@@ -1524,17 +1605,17 @@
                     const disableBuy = cbActive || maxBuy < 1;
                     
                     return `
-                    <div class="p-2 rounded-xl border ${bgClass} shadow-sm transition-colors duration-300 flex flex-col justify-between h-full bg-glass">
+                    <div class="p-2.5 rounded-xl border ${bgClass} shadow-sm transition-colors duration-300 flex flex-col justify-between h-full bg-glass">
                         <div class="flex justify-between items-start mb-1">
-                            <div class="font-black text-[11px] md:text-xs text-white leading-tight break-keep pr-1 ${isBlinded ? 'blinded-text' : ''}">${dispName}</div>
+                            <div class="font-black text-xs md:text-sm text-white leading-tight break-keep pr-1 ${isBlinded ? 'blinded-text' : ''}">${dispName}</div>
                         </div>
-                        <div class="text-right mb-1.5 mt-auto">
+                        <div class="text-right mb-2 mt-auto">
                             <div class="font-black text-sm md:text-base ${diff!==0 && !isBlinded ? 'price-update' : ''} text-white ${isBlinded ? 'blinded-text' : ''}">${dispPrice}</div>
-                            <div class="text-[9px] md:text-[10px] font-bold ${diffClass}">${diffText}</div>
+                            <div class="text-[10px] md:text-xs font-bold ${diffClass}">${diffText}</div>
                         </div>
-                        <div class="flex gap-1">
-                            <button onclick="window.buyStock('${s.id}', 1)" class="flex-1 bg-slate-700/80 hover:bg-slate-600 text-white py-1 rounded text-[9px] md:text-[10px] font-bold shadow active:scale-95 transition" ${disableBuy?'disabled style="opacity:0.3"':''}>1주</button>
-                            <button onclick="window.buyStock('${s.id}', ${maxBuy})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-1 rounded text-[9px] md:text-[10px] font-black shadow-sm active:scale-95 transition" ${disableBuy?'disabled style="opacity:0.3"':''}>MAX</button>
+                        <div class="flex gap-1.5">
+                            <button onclick="window.buyStock('${s.id}', 1)" class="flex-1 bg-slate-700/80 hover:bg-slate-600 text-white py-1.5 rounded-md text-[10px] md:text-xs font-bold shadow active:scale-95 transition" ${disableBuy?'disabled style="opacity:0.3"':''}>1주</button>
+                            <button onclick="window.buyStock('${s.id}', ${maxBuy})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-md text-[10px] md:text-xs font-black shadow-sm active:scale-95 transition" ${disableBuy?'disabled style="opacity:0.3"':''}>MAX</button>
                         </div>
                     </div>`;
                 }).join('');
@@ -1618,50 +1699,71 @@
         if(!myData) return;
         
         const html = `
-            <div id="player-game-container" class="flex flex-col w-full h-full pb-safe relative">
-                <div class="flex gap-2 mb-1.5">
-                    <div class="flex-1 bg-glass p-2 md:p-3 rounded-xl border border-slate-600 flex items-center justify-between shadow-sm">
-                        <div>
-                            <div class="text-[9px] md:text-xs font-bold text-slate-400 mb-0.5" id="player-cash">보유 현금</div>
-                            <div class="text-base md:text-xl font-black text-emerald-400 leading-none" id="player-total-asset">0 원</div>
+            <div id="player-game-container" class="flex flex-col md:flex-row w-full h-full pb-safe relative gap-2 md:gap-4">
+                
+                <!-- [PC 전용] 왼쪽 실시간 랭킹 패널 -->
+                <div class="hidden md:flex w-64 flex-col bg-glass rounded-2xl border border-slate-600 shadow-md p-4 shrink-0">
+                    <h3 class="font-black text-lg text-yellow-400 mb-3 border-b border-slate-600 pb-3 flex items-center"><i class="fas fa-trophy mr-2"></i>실시간 랭킹 (Top 10)</h3>
+                    <div id="desktop-ranking-list" class="flex-grow overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-1"></div>
+                    <div id="desktop-my-rank" class="mt-2 pt-2 border-t border-slate-600 shrink-0"></div>
+                </div>
+
+                <!-- 메인 게임 영역 -->
+                <div class="flex-1 flex flex-col min-w-0">
+                    <div class="flex gap-2 mb-1.5 md:mb-2">
+                        <div class="flex-1 bg-glass p-2 md:p-4 rounded-xl border border-slate-600 flex items-center justify-between shadow-sm">
+                            <div class="min-w-0">
+                                <div class="text-[10px] md:text-xs font-bold text-slate-400 mb-0.5" id="player-cash">보유 현금</div>
+                                <div class="text-base md:text-2xl font-black text-emerald-400 leading-none truncate" id="player-total-asset">0 원</div>
+                            </div>
+                        </div>
+                        <div id="timer-container" class="w-20 md:w-32 bg-glass p-2 md:p-4 rounded-xl border border-slate-600 flex flex-col items-center justify-center shadow-sm transition-colors duration-300 shrink-0">
+                            <div class="text-[10px] md:text-xs font-bold text-slate-400 mb-0.5">남은시간</div>
+                            <div class="text-lg md:text-2xl font-mono text-white font-black leading-none" id="player-timer">--:--</div>
                         </div>
                     </div>
-                    <div id="timer-container" class="w-20 md:w-28 bg-glass p-2 md:p-3 rounded-xl border border-slate-600 flex flex-col items-center justify-center shadow-sm transition-colors duration-300">
-                        <div class="text-[9px] md:text-xs font-bold text-slate-400 mb-0.5">남은시간</div>
-                        <div class="text-lg md:text-xl font-mono text-white font-black leading-none" id="player-timer">--:--</div>
-                    </div>
-                </div>
 
-                <div id="news-ticker-container" class="bg-red-900/70 border border-red-500/50 p-2 rounded-xl mb-1.5 flex items-center gap-2 shadow-sm transition-colors duration-300">
-                    <div class="text-xl md:text-2xl animate-pulse drop-shadow-md shrink-0" id="news-icon">📰</div>
-                    <div class="text-[11px] md:text-xs font-bold leading-snug text-white flex-1 whitespace-pre-line" id="player-news-content">뉴스 대기중...</div>
-                </div>
-
-                <div class="flex gap-1 mb-1.5 bg-slate-800/80 p-1 rounded-xl shrink-0 shadow-inner">
-                    <button onclick="window.switchTab('quiz')" class="flex-1 py-1.5 md:py-2 text-[11px] md:text-sm rounded-lg font-black transition ${currentTab === 'quiz' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-700'}">📝 돈벌기</button>
-                    <button onclick="window.switchTab('market')" class="flex-1 py-1.5 md:py-2 text-[11px] md:text-sm rounded-lg font-black transition ${currentTab === 'market' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-700'}">📈 주식시장</button>
-                    <button onclick="window.switchTab('portfolio')" class="flex-1 py-1.5 md:py-2 text-[11px] md:text-sm rounded-lg font-black transition ${currentTab === 'portfolio' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-700'}">💼 내자산</button>
-                </div>
-
-                <div class="flex-grow bg-glass rounded-2xl p-2 md:p-3 overflow-y-auto border border-slate-600 relative custom-scrollbar shadow-md">
-                    <div id="tab-quiz" class="${currentTab === 'quiz' ? 'block' : 'hidden'} h-full flex flex-col justify-center">
-                        ${generateQuizHtml()}
+                    <div id="news-ticker-container" class="bg-red-900/70 border border-red-500/50 p-2 md:p-3 rounded-xl mb-1.5 md:mb-2 flex items-center gap-2 md:gap-3 shadow-sm transition-colors duration-300">
+                        <div class="text-xl md:text-3xl animate-pulse drop-shadow-md shrink-0" id="news-icon">📰</div>
+                        <div class="text-xs md:text-sm font-bold leading-snug text-white flex-1 whitespace-pre-line" id="player-news-content">뉴스 대기중...</div>
                     </div>
-                    <div id="tab-market" class="${currentTab === 'market' ? 'block' : 'hidden'} h-full">
-                        <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 md:gap-2 pb-2" id="market-grid"></div>
+
+                    <div class="flex gap-1 mb-1.5 md:mb-2 bg-slate-800/80 p-1 rounded-xl shrink-0 shadow-inner overflow-x-auto hide-scrollbar">
+                        <button onclick="window.switchTab('quiz')" class="flex-1 min-w-[70px] py-2 md:py-3 text-[11px] md:text-sm rounded-lg font-black transition ${currentTab === 'quiz' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-700'}">📝 돈벌기</button>
+                        <button onclick="window.switchTab('market')" class="flex-1 min-w-[70px] py-2 md:py-3 text-[11px] md:text-sm rounded-lg font-black transition ${currentTab === 'market' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-700'}">📈 주식시장</button>
+                        <button onclick="window.switchTab('portfolio')" class="flex-1 min-w-[70px] py-2 md:py-3 text-[11px] md:text-sm rounded-lg font-black transition ${currentTab === 'portfolio' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-700'}">💼 내자산</button>
+                        <!-- 모바일 전용 랭킹 탭 -->
+                        <button onclick="window.switchTab('ranking')" class="md:hidden flex-1 min-w-[70px] py-2 text-[11px] rounded-lg font-black transition ${currentTab === 'ranking' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-700'}">🏆 랭킹</button>
                     </div>
-                    <div id="tab-portfolio" class="${currentTab === 'portfolio' ? 'block' : 'hidden'} h-full">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 h-full">
-                            <div>
-                                <h3 class="font-black text-base md:text-lg mb-3 text-slate-200 border-b border-slate-600 pb-2 flex items-center"><i class="fas fa-chart-pie mr-2 text-blue-400"></i>나의 투자 현황</h3>
-                                <div id="portfolio-list" class="flex flex-col gap-1"></div>
+
+                    <div class="flex-grow bg-glass rounded-2xl p-3 md:p-5 overflow-y-auto border border-slate-600 relative custom-scrollbar shadow-md">
+                        <div id="tab-quiz" class="${currentTab === 'quiz' ? 'block' : 'hidden'} h-full flex flex-col justify-center">
+                            ${generateQuizHtml()}
+                        </div>
+                        <div id="tab-market" class="${currentTab === 'market' ? 'block' : 'hidden'} h-full">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 pb-2" id="market-grid"></div>
+                        </div>
+                        <div id="tab-portfolio" class="${currentTab === 'portfolio' ? 'block' : 'hidden'} h-full">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 pb-4 h-full">
+                                <div>
+                                    <h3 class="font-black text-base md:text-lg mb-3 text-slate-200 border-b border-slate-600 pb-2 flex items-center"><i class="fas fa-chart-pie mr-2 text-blue-400"></i>나의 투자 현황</h3>
+                                    <div id="portfolio-list" class="flex flex-col gap-1.5"></div>
+                                </div>
+                                <div>
+                                    <h3 class="font-black text-base md:text-lg mb-3 mt-4 lg:mt-0 text-yellow-400 border-b border-slate-600 pb-2 flex items-center justify-between">
+                                        <span><i class="fas fa-backpack mr-2"></i>나의 인벤토리</span>
+                                        <span class="text-[10px] md:text-xs text-white font-bold bg-slate-700 px-2.5 py-1 rounded-full border border-slate-500" id="drop-probability"></span>
+                                    </h3>
+                                    <div id="inventory-list" class="flex flex-col gap-1.5"></div>
+                                </div>
                             </div>
-                            <div>
-                                <h3 class="font-black text-base md:text-lg mb-3 mt-4 md:mt-0 text-yellow-400 border-b border-slate-600 pb-2 flex items-center justify-between">
-                                    <span><i class="fas fa-backpack mr-2"></i>나의 인벤토리</span>
-                                    <span class="text-[10px] md:text-xs text-white font-bold bg-slate-700 px-2.5 py-1 rounded-full border border-slate-500" id="drop-probability"></span>
-                                </h3>
-                                <div id="inventory-list" class="flex flex-col gap-1"></div>
+                        </div>
+                        <!-- 모바일 랭킹 탭 내용 -->
+                        <div id="tab-ranking" class="${currentTab === 'ranking' ? 'block' : 'hidden'} h-full md:hidden">
+                            <div class="flex flex-col h-full">
+                                <h3 class="font-black text-base mb-3 text-yellow-400 border-b border-slate-600 pb-2 flex items-center"><i class="fas fa-trophy mr-2"></i>실시간 랭킹 (Top 10)</h3>
+                                <div id="mobile-ranking-list" class="flex-grow overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-1"></div>
+                                <div id="mobile-my-rank" class="mt-2 pt-2 border-t border-slate-600 shrink-0"></div>
                             </div>
                         </div>
                     </div>
@@ -1688,7 +1790,7 @@
             if(timerContainer) {
                 const msToPhase = roomState.nextPhaseTime - Date.now();
                 const phaseSecs = Math.floor(msToPhase / 1000);
-                if (phaseSecs <= 10 && phaseSecs > 0) {
+                if (phaseSecs <= 10 && phaseSecs > 0 && !roomState.extraTimeTriggered) {
                     timerContainer.classList.add('timer-warning', 'bg-red-900/80', 'border-red-500');
                     timerContainer.classList.remove('bg-glass', 'border-slate-600');
                     if(lastPlayedTickSecond !== phaseSecs) {
@@ -1739,7 +1841,7 @@
         }
 
         const openBookBadge = (myData && myData.openBookCount > 0) ? `<div class="text-indigo-300 font-black text-sm mb-2 animate-pulse bg-indigo-900/50 px-3 py-1 rounded-full border border-indigo-500">📖 오픈북 찬스 작동 중! (${myData.openBookCount}회 남음)</div>` : '';
-        const shieldBadge = (myData && myData.hasShield) ? `<div class="text-xs bg-blue-600 text-white font-black px-4 py-1.5 rounded-full mb-3 shadow-[0_0_15px_rgba(37,99,235,0.8)] border border-blue-400 animate-pulse">🛡️ 방어막 가동 중!</div>` : '';
+        const shieldBadge = (myData && myData.shieldCount > 0) ? `<div class="text-xs bg-blue-600 text-white font-black px-4 py-1.5 rounded-full mb-3 shadow-[0_0_15px_rgba(37,99,235,0.8)] border border-blue-400 animate-pulse">🛡️ 방어막 가동 중! (${myData.shieldCount}회 방어)</div>` : '';
         
         let isBottom3 = false;
         let sortedRank = players.map(pl => {
@@ -1757,9 +1859,9 @@
                 ${shieldBadge}
                 ${bottomBuffBadge}
                 ${openBookBadge}
-                <div class="text-2xl md:text-4xl font-black mb-4 md:mb-6 text-center text-white bg-slate-800 w-full py-5 md:py-8 rounded-2xl border-4 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)] break-words px-3 leading-tight">${quizCurrentQuestion.word}</div>
+                <div class="text-2xl md:text-4xl font-black mb-4 md:mb-6 text-center text-white bg-slate-800 w-full py-6 md:py-10 rounded-2xl border-4 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)] break-words px-3 leading-tight">${quizCurrentQuestion.word}</div>
                 <div class="w-full flex flex-col gap-2 md:gap-3">
-                    ${quizCurrentQuestion.options.map((opt, i) => `<button onclick="window.submitAnswer('${opt}')" class="w-full bg-slate-700 hover:bg-indigo-600 text-white font-black py-3 rounded-xl text-sm md:text-base transition border-b-4 border-slate-900 hover:border-indigo-800 active:translate-y-1 active:border-b-0 shadow-sm">${opt}</button>`).join('')}
+                    ${quizCurrentQuestion.options.map((opt, i) => `<button onclick="window.submitAnswer('${opt}')" class="w-full bg-slate-700 hover:bg-indigo-600 text-white font-black py-4 rounded-xl text-sm md:text-base transition border-b-4 border-slate-900 hover:border-indigo-800 active:translate-y-1 active:border-b-0 shadow-sm">${opt}</button>`).join('')}
                 </div>
             </div>
         `;
@@ -1907,7 +2009,7 @@
 
     const renderMarketSummary = () => {
         let stocksCalc = roomState.stocks.map(s => {
-            const initial = s.history.length > 0 ? s.history[0] : s.price; // 첫 가격 기준 (동적 리셋 고려)
+            const initial = s.history.length > 0 ? s.history[0] : s.price; 
             const diff = s.price - initial;
             const pct = initial > 0 ? (diff / initial) * 100 : 0;
             return { ...s, initial, diff, pct };
