@@ -536,7 +536,6 @@
                     s.pumpedUntil = Date.now() + 10000; 
                     roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); 
                 }
-            }
             } else if (data.itemId === 'i5') { 
                 const fTime = Date.now() + 6000; players.forEach(x => { if(getFin(x.id).id !== fin.id) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
                 let msgText = roomState.mode === 'team' ? '우리 팀을 제외한 모두가' : '자신을 제외한 모두가'; roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! ${msgText} 6초간 얼어붙습니다.` }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `적들을 6초간 얼려버렸습니다!` }, conn);
