@@ -450,7 +450,7 @@
             if (r < 0.1) earned = 5000; else if (r < 0.3) earned = 3000; else if (r < 0.6) earned = 2000;
             if (isBottomBuff) earned *= 2;
 
-            let bakeryBonus = 0; if (fin.portfolio['s12'] > 0) { bakeryBonus = fin.portfolio['s12'] * 500; earned += bakeryBonus; }
+            let bakeryBonus = 0; if (fin.portfolio['s12'] > 0) { bakeryBonus = Math.min(fin.portfolio['s12'], 100) * 500; earned += bakeryBonus; }
             fin.cash += earned; p.correctAnswers++; p.earnedFromQuiz = (p.earnedFromQuiz || 0) + earned;
             if (data.usedOpenBook && p.openBookCount > 0) p.openBookCount--;
             
@@ -530,7 +530,13 @@
                 if(target) { const fakeNewsList = ["🚨 [속보] DS AI랩스 상장폐지 절차 돌입!", "🚨 [속보] 예린스페이스, 로켓 폭발로 파산 위기!", "🚨 [단독] 당신의 폰이 해킹당하고 있습니다!"]; const fakeNews = fakeNewsList[Math.floor(Math.random() * fakeNewsList.length)]; sendToPlayer(target.id, { type: 'EVENT_SPAM_NEWS', from: p.name, news: fakeNews }, hostConns[target.id] || null); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님의 화면에 가짜 뉴스를 도배했습니다!` }, conn); }
             } else if (data.itemId === 'i13') { 
                 let s = roomState.stocks.find(x => x.id === data.targetId);
-                if(s) { s.price = Math.floor(s.price * 1.50); s.pumpedUntil = Date.now() + 10000; roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); }
+                if(s) { 
+                    s.prePumpPrice = s.price; // 🔥 작전 시작 전 원래 가격(개미지옥 기준점) 기록!
+                    s.price = Math.min(Math.floor(s.price * 1.50), 200000); 
+                    s.pumpedUntil = Date.now() + 10000; 
+                    roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); 
+                }
+            }
             } else if (data.itemId === 'i5') { 
                 const fTime = Date.now() + 6000; players.forEach(x => { if(getFin(x.id).id !== fin.id) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
                 let msgText = roomState.mode === 'team' ? '우리 팀을 제외한 모두가' : '자신을 제외한 모두가'; roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! ${msgText} 6초간 얼어붙습니다.` }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `적들을 6초간 얼려버렸습니다!` }, conn);
@@ -831,8 +837,8 @@ if (downCount >= 6) { // 12개 중 6개(절반) 이상만 떨어져도 발동하
                     let finsToDiv = roomState.mode === 'team' ? roomState.teams : players;
                     finsToDiv.forEach(f => {
                         let divMsg = []; let totalDiv = 0;
-                        if (f.portfolio['s10'] > 0) { let amt = Math.floor(f.portfolio['s10'] * roomState.stocks.find(s=>s.id==='s10').price * 0.05); f.cash += amt; totalDiv += amt; divMsg.push(`[경환캐피탈] 예금 이자 ${amt.toLocaleString()}원`); }
-                        if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; f.cash += amt; totalDiv += amt; divMsg.push(`[병하전자] 고정 배당금 ${amt.toLocaleString()}원`); }
+                        if (f.portfolio['s10'] > 0) { let amt = Math.floor(f.portfolio['s10'] * roomState.stocks.find(s=>s.id==='s10').price * 0.05); amt = Math.min(amt, 500000); f.cash += amt; totalDiv += amt; divMsg.push(`[경환캐피탈] 예금 이자 ${amt.toLocaleString()}원${amt===500000?' (최대 한도)':''}`); }
+if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(amt, 300000); f.cash += amt; totalDiv += amt; divMsg.push(`[병하전자] 고정 배당금 ${amt.toLocaleString()}원${amt===300000?' (최대 한도)':''}`); }
                         if (totalDiv > 0) {
                             if (roomState.mode === 'team') { f.members.forEach(mid => sendToPlayer(mid, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[mid] || null)); } 
                             else { sendToPlayer(f.id, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[f.id] || null); }
@@ -860,7 +866,28 @@ if (downCount >= 6) { // 12개 중 6개(절반) 이상만 떨어져도 발동하
 
             let pumped = false;
             roomState.stocks.forEach(stock => {
-                if (stock.pumpedUntil && now < stock.pumpedUntil) { stock.price = Math.floor(stock.price * (1 + (Math.random() * 0.02 + 0.01))); stock.history.push(stock.price); if(stock.history.length > 100) stock.history.shift(); pumped = true; }
+                if (stock.pumpedUntil) { 
+                    if (now < stock.pumpedUntil) { 
+                        // 1. 작전 진행 중 (10초간): 무한 폭등 (최대 20만원 제한)
+                        stock.price = Math.min(Math.floor(stock.price * (1 + (Math.random() * 0.02 + 0.01))), 200000); 
+                        stock.history.push(stock.price); 
+                        if(stock.history.length > 100) stock.history.shift(); 
+                        pumped = true; 
+                    } else {
+                        // 2. 작전 종료 직후: 거품 붕괴! (작전 시작 전 가격보다 더 떨어짐)
+                        let basePrice = stock.prePumpPrice || (stock.price * 0.5);
+                        stock.price = Math.max(50, Math.floor(basePrice * 0.7)); // 시작 전 가격의 70% 로 추락 (최소 50원 보장)
+                        
+                        stock.history.push(stock.price);
+                        if(stock.history.length > 100) stock.history.shift();
+                        
+                        roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 [거품 붕괴] 작전 세력이 털고 도망갔습니다! [${stock.name}] 주가가 작전 이전보다 더 폭락했습니다!` });
+                        
+                        delete stock.pumpedUntil;
+                        delete stock.prePumpPrice;
+                        pumped = true;
+                    }
+                }
             });
             if (pumped) hostBroadcast();
             
