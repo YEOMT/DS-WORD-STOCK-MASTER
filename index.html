@@ -177,8 +177,8 @@
         { id: 'i3', name: '🤫 회장님의 조언', tier: 'A', type: 'active_self', desc: '다음 변동할 주식 종목 하나 스포일러.' },
         { id: 'i19', name: '📉 하락장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 시 다음 폭락 확정 종목 스포일러.' },
         { id: 'i20', name: '📈 상승장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 시 다음 폭등 확정 종목 스포일러.' },
-        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'A', type: 'active_global', desc: '자신을 제외한 모두 6초간 행동 불가.' },
-        { id: 'i17', name: '🛑 서킷 브레이커', tier: 'A', type: 'active_global', desc: '모든 거래 10초간 정지.' },
+        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'S', type: 'active_global', desc: '자신을 제외한 모두 4초간 행동 불가.' },
+        { id: 'i17', name: '🛑 서킷 브레이커', tier: 'S', type: 'active_global', desc: '모든 거래 5초간 정지.' },
         { id: 'i11', name: '📖 오픈북 찬스', tier: 'A', type: 'active_self', desc: '다음 5번의 퀴즈에서 오답 제거.' },
         { id: 'i12', name: '📰 가짜 뉴스 살포', tier: 'A', type: 'active_player', desc: '상대방 화면에 가짜 뉴스 도배.' },
         { id: 'i13', name: '💸 작전 세력', tier: 'A', type: 'active_stock', desc: '선택 주식 즉시 폭등 및 요동.' },
@@ -537,14 +537,14 @@
                     roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); 
                 }
             } else if (data.itemId === 'i5') { 
-                const fTime = Date.now() + 6000; players.forEach(x => { if(getFin(x.id).id !== fin.id) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
-                let msgText = roomState.mode === 'team' ? '우리 팀을 제외한 모두가' : '자신을 제외한 모두가'; roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! ${msgText} 6초간 얼어붙습니다.` }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `적들을 6초간 얼려버렸습니다!` }, conn);
+                const fTime = Date.now() + 4000; players.forEach(x => { if(getFin(x.id).id !== fin.id) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
+                let msgText = roomState.mode === 'team' ? '우리 팀을 제외한 모두가' : '자신을 제외한 모두가'; roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! ${msgText} 4초간 얼어붙습니다.` }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `적들을 6초간 얼려버렸습니다!` }, conn);
             } else if (data.itemId === 'i7') { 
                 let oldAmt = fin.portfolio[data.targetId] || 0; let oldCost = oldAmt * (fin.avgPrice[data.targetId] || 0); fin.portfolio[data.targetId] = oldAmt + 1; fin.avgPrice[data.targetId] = oldCost / fin.portfolio[data.targetId]; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `선택한 주식 1주를 금고에 공짜로 얻었습니다!` }, conn);
             } else if (data.itemId === 'i17') {
-                roomState.circuitBreakerUntil = Date.now() + 10000; roomState.circuitBreakerBy = p.name; roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 ${p.name}님이 서킷 브레이커를 발동했습니다! 모든 거래가 10초간 정지됩니다.` });
+                roomState.circuitBreakerUntil = Date.now() + 5000; roomState.circuitBreakerBy = p.name; roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 ${p.name}님이 서킷 브레이커를 발동했습니다! 모든 거래가 5초간 정지됩니다.` });
                 Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_CIRCUIT_BREAKER', by: p.name, targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_CIRCUIT_BREAKER', by: p.name, targetUid: 'all'});
-                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '서킷 브레이커를 발동했습니다! 10초간 거래가 정지됩니다.' }, conn);
+                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '서킷 브레이커를 발동했습니다! 5초간 거래가 정지됩니다.' }, conn);
             }
         }
         else if (data.type === 'HOST_NEXT_PHASE') { roomState.endPhase = 'rankings'; }
