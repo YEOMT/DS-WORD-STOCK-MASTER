@@ -3,10 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>영단어 주식 타이쿤 - 커스텀 단어장 완벽판</title>
+    <title>영단어 주식왕 - 폭풍의 주식시장</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, onChildAdded, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtK7NAfw4wDsS4LRacWF78PHT3zls50IQ",
+            authDomain: "dsgames-fecef.firebaseapp.com",
+            projectId: "dsgames-fecef",
+            storageBucket: "dsgames-fecef.firebasestorage.app",
+            messagingSenderId: "723943517090",
+            appId: "1:723943517090:web:3e8596971cedf46cc460fb",
+            measurementId: "G-GNVR6N4LKQ"
+        };
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
+            window.fbDb = db; window.fbRef = ref; window.fbSet = set; 
+            window.fbOnValue = onValue; window.fbPush = push; 
+            window.fbOnChildAdded = onChildAdded; window.fbRemove = remove; window.fbOnDisconnect = onDisconnect;
+            console.log("Firebase 연결 준비 완료!");
+        } catch(e) { console.error("Firebase 초기화 에러", e); }
+    </script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; overscroll-behavior-y: none; user-select: none; -webkit-user-select: none; }
@@ -77,36 +101,27 @@
         if (event.reason && (event.reason.name === 'SecurityError' || event.reason.message.includes('WebSocket'))) event.preventDefault(); 
     });
 
-    // Audio Context Autoplay 정책 문제 해결 (Lazy Initialization)
+    // Audio Context Autoplay
     let audioCtx = null;
     const getAudioCtx = () => {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
         }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         return audioCtx;
     };
 
-    // 사용자의 첫 상호작용 시 Audio Context 초기화
     document.body.addEventListener('click', () => getAudioCtx(), { once: true });
     document.body.addEventListener('touchstart', () => getAudioCtx(), { once: true });
 
     const play8BitTone = (type, freq, duration, vol = 0.1, slideFreq = null) => {
-        const ctx = getAudioCtx();
-        const osc = ctx.createOscillator(); 
-        const gainNode = ctx.createGain();
-        osc.type = type; 
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        if(slideFreq) { osc.frequency.exponentialRampToValueAtTime(slideFreq, ctx.currentTime + duration); }
-        gainNode.gain.setValueAtTime(vol, ctx.currentTime); 
-        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-        osc.connect(gainNode); 
-        gainNode.connect(ctx.destination);
-        osc.start(); 
-        osc.stop(ctx.currentTime + duration);
+        const ctx = getAudioCtx(); const osc = ctx.createOscillator(); const gainNode = ctx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        if(slideFreq) osc.frequency.exponentialRampToValueAtTime(slideFreq, ctx.currentTime + duration);
+        gainNode.gain.setValueAtTime(vol, ctx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        osc.connect(gainNode); gainNode.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + duration);
     };
 
     const SOUNDS = {
@@ -122,21 +137,36 @@
 
     window.stopBGM = () => { if (SOUNDS.bgm) { SOUNDS.bgm.pause(); SOUNDS.bgm.currentTime = 0; } };
     window.playSound = (soundKey) => { 
-        if (!soundKey) return; 
-        getAudioCtx(); // 오디오 컨텍스트 활성화 보장
-        const sound = SOUNDS[soundKey]; 
-        if (!sound) return; 
-        if (typeof sound === 'function') { sound(); } 
-        else { sound.currentTime = 0; sound.play().catch(() => {}); } 
+        if (!soundKey) return; getAudioCtx(); const sound = SOUNDS[soundKey]; 
+        if (!sound) return; if (typeof sound === 'function') sound(); else { sound.currentTime = 0; sound.play().catch(() => {}); } 
     };
 
     let savedSession = null;
     try { savedSession = JSON.parse(localStorage.getItem('stockedu_session')); } catch(e) {}
     const myUid = savedSession ? savedSession.uid : Math.random().toString(36).substr(2, 9);
     
+    // 수집/가챠 시스템 데이터
+    window.userTokens = parseInt(localStorage.getItem('stockedu_tokens') || '0');
+    window.userCollection = JSON.parse(localStorage.getItem('stockedu_collection') || '[]');
+    window.myEquippedEmoji = localStorage.getItem('stockedu_equipped') || '';
+
+    const GACHA_POOL = [
+        { emoji: '🤖', tier: 'Bronze', name: 'DS AI랩스' },
+        { emoji: '🪖', tier: 'Bronze', name: 'KS디펜스' },
+        { emoji: '🛒', tier: 'Bronze', name: '유진커머스' },
+        { emoji: '🍩', tier: 'Bronze', name: '지원베이커리' },
+        { emoji: '🚀', tier: 'Silver', name: '예린스페이스' },
+        { emoji: '♻️', tier: 'Silver', name: '형진에코' },
+        { emoji: '🎮', tier: 'Silver', name: '다솜게임즈' },
+        { emoji: '🎤', tier: 'Silver', name: 'JH엔터' },
+        { emoji: '🐳', tier: 'Gold', name: '병하전자' },
+        { emoji: '🪙', tier: 'Gold', name: '비스트하트 코인' },
+        { emoji: '🧬', tier: 'Gold', name: 'YG바이오' },
+        { emoji: '💰', tier: 'Gold', name: '경환캐피탈' }
+    ];
+
     let currentRole = null; let roomCode = null; let currentTab = 'quiz'; let quizCurrentQuestion = null; let lastNewsMsg = null; 
     let playerTimerInterval = null; let lastChatLength = 0; let isWaitingForResult = false; let quizWordQueue = []; let toastTimeout = null;
-    let peer = null; let myConn = null; let hostConns = {}; let bc = null; 
     
     const TEAM_NAMES = ['풀매수한 개미들', '상한가 친 황소들', '떡상하는 고릴라', '익절하는 여우들', '존버하는 거북이', '저점 줍는 펠리컨', '배당받는 부엉이', '우상향하는 독수리', '물타기하는 연어들', '손절 없는 불사조'];
 
@@ -152,6 +182,7 @@
         {word:'joy',meaning:'기쁨'},{word:'travel',meaning:'여행하다'},{word:'vacation',meaning:'방학, 휴가'},{word:'awesome',meaning:'멋진, 기막히게 좋은'},{word:'gondola',meaning:'곤돌라'},{word:'lesson',meaning:'수업, 교훈'},{word:'surf',meaning:'파도타기를 하다'},{word:'aunt',meaning:'이모, 고모, 숙모'},{word:'camping',meaning:'야영, 캠핑'},{word:'trail',meaning:'오솔길, 산길'},{word:'explain',meaning:'설명하다'},{word:'schedule',meaning:'일정, 시간표'},{word:'musical',meaning:'뮤지컬'},{word:'museum',meaning:'박물관'},{word:'amusement park',meaning:'놀이공원'},{word:'join',meaning:'함께하다, 합류하다'},{word:'order',meaning:'주문하다'},{word:'yummy',meaning:'아주 맛있는'},{word:'look forward to',meaning:'~을 기대하다'},{word:'colorful',meaning:'다채로운, 화려한'},{word:'village',meaning:'마을'},{word:'building',meaning:'건물'},{word:'cliff',meaning:'절벽'},{word:'view',meaning:'경관, 전망'},{word:'fantastic',meaning:'환상적인'},{word:'terrace',meaning:'테라스'},{word:'especially',meaning:'특히'},{word:'spend',meaning:'쓰다, 보내다'},{word:'perfect',meaning:'완벽한'},{word:'pay',meaning:'지불하다'},{word:'entrance fee',meaning:'입장료'},{word:'rental',meaning:'대여, 임대'},{word:'explore',meaning:'탐험하다, 답사하다'},{word:'pearl',meaning:'진주'},{word:'narrow',meaning:'좁은'},{word:'souvenir',meaning:'기념품'},{word:'local',meaning:'현지인, 주민'},{word:'famous',meaning:'유명한'},{word:'sunrise',meaning:'일출, 해돋이'},{word:'early',meaning:'일찍'},{word:'different',meaning:'다른'},{word:'attitude',meaning:'태도'},{word:'result',meaning:'결과'},{word:'hold',meaning:'개최하다, 열다'},{word:'contest',meaning:'대회, 경연'},{word:'enter',meaning:'참가하다, 들어가다'},{word:'kid',meaning:'농담하다'},{word:'terrible',meaning:'끔찍한, 형편없는'},{word:'interested',meaning:'관심 있는'},{word:'guess',meaning:'추측하다'},{word:'happen',meaning:'일어나다, 발생하다'},{word:'situation',meaning:'상황'},{word:'mistake',meaning:'실수'},{word:'text',meaning:'문자를 보내다'},{word:'tired',meaning:'피곤한'},{word:'waste',meaning:'낭비하다'},{word:'fault',meaning:'잘못, 책임'},{word:'quit',meaning:'그만두다, 포기하다'},{word:'hopeless',meaning:'절망적인, 가망 없는'},{word:'practice',meaning:'연습하다; 연습'},{word:'cheer up',meaning:'기운을 내다, 격려하다'},{word:'worry',meaning:'걱정하다'},{word:'almost',meaning:'거의'},{word:'prize',meaning:'상'},{word:'finish',meaning:'끝내다, 마치다'},{word:'proud',meaning:'자랑스러운'},{word:'support',meaning:'지지, 응원'},{word:'sick',meaning:'아픈'},{word:'agree',meaning:'동의하다'},{word:'tomorrow',meaning:'내일'}
     ];
     
+    // KS디펜스로 변경
     const INITIAL_STOCKS = [
         { id: 's1', name: '🤖 DS AI랩스', price: 10000, history: [10000], vol: 0.40 },
         { id: 's2', name: '🪖 KS디펜스', price: 5000, history: [5000], vol: 0.55 },
@@ -175,7 +206,7 @@
         { hintMsg: "🚨 속보: 가상화폐 '비스트하트 코인' 찌라시 확산!", results: [{ resultMsg: "🪙 팝스타가 하트 이모티콘과 매수 인증!<br>[비스트하트 코인 폭등]", targets: ['s6'], impact: 0.80 }, { resultMsg: "🪙 개발자가 코인 전량 매도 후 잠적!<br>[비스트하트 코인 폭락]", targets: ['s6'], impact: -0.60 }] },
         { hintMsg: "📦 속보: 전국 물류 노조 총파업 예고!", results: [{ resultMsg: "🛒 유진커머스, 드론 배달 긴급 도입!<br>[유진커머스, 스페이스 동반 상승]", targets: ['s7', 's3'], impact: 0.25 }, { resultMsg: "🛒 유진커머스, 전 직원 연차로 중단!<br>[유진커머스 폭락]", targets: ['s7'], impact: -0.30 }, { resultMsg: "🛒 노사 타결! 배송 정상화.<br>[유진커머스 반등]", targets: ['s7'], impact: 0.20 }] },
         { hintMsg: "🛸 속보: 글로벌 게임쇼 개막! 신작 발표 예정.", results: [{ resultMsg: "🎮 다솜게임즈, 신작 트레일러 환호!<br>[다솜게임즈 급등]", targets: ['s8'], impact: 0.30 }, { resultMsg: "🎮 다솜게임즈, 버그가 밈(Meme)이 됨!<br>[다솜게임즈 상승]", targets: ['s8'], impact: 0.20 }, { resultMsg: "🎮 다솜게임즈, 특별한 호재 없음.<br>[다솜게임즈 소폭 하락]", targets: ['s8'], impact: -0.15 }] },
-        { hintMsg: "❌ 속보: 환경부, 폐기물 무단투기 특별 단속!", results: [{ resultMsg: "♻️ 형진에코, 기적의 소각로 발명!<br>[형진에코 떡상]", targets: ['s9'], impact: 0.35 }, { resultMsg: "♻️ 사장님이 씽씽이 타고 쓰레기 투기하다 적발!<br>[형진에코 나락]", targets: ['s9'], impact: -0.35 }, { resultMsg: "♻️ 형진에코, 무단투기 논란 해명!<br>[형진에코 반등]", targets: ['s9'], impact: 0.20 }] },
+        { hintMsg: "❌ 속보: 환경부, 폐기물 무단투기 특별 단속!", results: [{ resultMsg: "♻️ 형진에코, 기적의 소각로 발명!<br>[형진에코 떡상]", targets: ['s9'], impact: 0.35 }, { resultMsg: "♻️ 사장님이 쓰레기 투기하다 적발!<br>[형진에코 나락]", targets: ['s9'], impact: -0.35 }, { resultMsg: "♻️ 형진에코, 무단투기 논란 해명!<br>[형진에코 반등]", targets: ['s9'], impact: 0.20 }] },
         { hintMsg: "🐀 속보: 한국은행, 기준금리 인상 검토!", results: [{ resultMsg: "💰 경환캐피탈, 파격적인 고금리 예금 출시!<br>[경환캐피탈 상승]", targets: ['s10'], impact: 0.25 }, { resultMsg: "💰 쥐떼가 현금을 파먹어 손실 발생!<br>[경환캐피탈 하락]", targets: ['s10'], impact: -0.25 }, { resultMsg: "💰 금리 인상 보류로 기대감.<br>[경환캐피탈 소폭 상승]", targets: ['s10'], impact: 0.15 }] },
         { hintMsg: "👨‍🌾 속보: 초대형 엔터 그룹, 간판 멤버 탈퇴설!", results: [{ resultMsg: "🎤 JH엔터, 남은 멤버로 빌보드 1위!<br>[JH엔터 떡상]", targets: ['s11'], impact: 0.35 }, { resultMsg: "🎤 그룹 리더가 돌연 귀농 선언!<br>[JH엔터 폭락]", targets: ['s11'], impact: -0.40 }, { resultMsg: "🎤 탈퇴설은 노이즈 마케팅 판명!<br>[JH엔터 상승]", targets: ['s11'], impact: 0.20 }] },
         { hintMsg: "🤮 속보: 식품 업계, 파격적인 '괴식' 트렌드 예고!", results: [{ resultMsg: "🍩 민트초코 떡볶이맛 대출시 매출 폭발!<br>[지원베이커리 상승]", targets: ['s12'], impact: 0.25 }, { resultMsg: "🍩 소비자 복통 호소! 소화제 폭증.<br>[베이커리 폭락, 바이오 상승]", targets: ['s12'], impact: -0.30, down_targets: ['s4'], down_impact: 0.20 }, { resultMsg: "🍩 기괴한 맛에 선넘었다며 불매운동.<br>[지원베이커리 하락]", targets: ['s12'], impact: -0.15 }] },
@@ -186,6 +217,7 @@
         { hintMsg: "❄️ 속보: 역대급 한파 및 폭설 예고!", results: [{ resultMsg: "🎮 집콕족 증가로 결제액 대폭발!<br>[다솜게임즈 급등]", targets: ['s8'], impact: 0.35 }, { resultMsg: "🛒 고속도로 마비로 배송 올스톱.<br>[유진커머스 하락]", targets: ['s7'], impact: -0.30 }] }
     ];
 
+    // 아이스 에이지(i5) 지정 대상으로 변경
     const ITEMS = [
         { id: 'i1', name: '🍀 행운의 펜던트', tier: 'S', type: 'active_self', desc: '내 아이템 획득 확률 10% 영구 증가.' },
         { id: 'i21', name: '✋ 나쁜 손', tier: 'S', type: 'active_player_item', desc: '상대방 가방에서 랜덤 아이템 1개 강탈.' },
@@ -195,8 +227,8 @@
         { id: 'i3', name: '🤫 회장님의 조언', tier: 'A', type: 'active_self', desc: '다음 변동할 주식 종목 하나 스포일러.' },
         { id: 'i19', name: '📉 하락장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 시 다음 폭락 확정 종목 스포일러.' },
         { id: 'i20', name: '📈 상승장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 시 다음 폭등 확정 종목 스포일러.' },
-        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'S', type: 'active_global', desc: '자신을 제외한 모두 3초간 행동 불가.' },
-        { id: 'i17', name: '🛑 서킷 브레이커', tier: 'S', type: 'active_global', desc: '모든 거래 4초간 정지.' },
+        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'S', type: 'active_player', desc: '지정한 상대 4초간 행동 불가.' },
+        { id: 'i17', name: '🛑 서킷 브레이커', tier: 'S', type: 'active_global', desc: '모든 거래 5초간 정지.' },
         { id: 'i11', name: '📖 오픈북 찬스', tier: 'A', type: 'active_self', desc: '다음 5번의 퀴즈에서 오답 제거.' },
         { id: 'i12', name: '📰 가짜 뉴스 살포', tier: 'A', type: 'active_player', desc: '상대방 화면에 가짜 뉴스 도배.' },
         { id: 'i13', name: '💸 작전 세력', tier: 'A', type: 'active_stock', desc: '선택 주식 즉시 폭등 및 요동.' },
@@ -227,6 +259,115 @@
         if(toastTimeout) clearTimeout(toastTimeout);
         toastTimeout = setTimeout(() => { toast.style.opacity = '0'; toast.style.pointerEvents = 'none'; }, 2500);
     };
+
+    // Firebase를 이용한 송신 로직 (PeerJS 대체)
+    const sendToPlayer = (uid, payload) => {
+        if (!window.fbDb || !roomCode) return;
+        const finalPayload = { ...payload, targetUid: uid, ts: Date.now() }; 
+        if (uid === 'all') {
+            window.fbPush(window.fbRef(window.fbDb, `rooms/${roomCode}/events_global`), finalPayload);
+        } else {
+            window.fbPush(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${uid}`), finalPayload);
+        }
+    };
+
+    let broadcastTimeout = null;
+    const hostBroadcast = () => {
+        if(currentRole !== 'host' || !window.fbDb) return;
+        if (broadcastTimeout) clearTimeout(broadcastTimeout);
+        broadcastTimeout = setTimeout(() => {
+            if (roomState.chats && roomState.chats.length > 50) roomState.chats = roomState.chats.slice(-50); // 채팅 최적화
+            
+            // Firebase로 상태 동기화
+            window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/state`), roomState);
+            window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/players`), players);
+            
+            if(roomState.status === 'lobby') {
+                updateLobbyPlayers();
+            }
+            else if(roomState.status === 'playing') { 
+                if(!document.getElementById('host-game-container')) window.renderHostGameSkeleton(); 
+                window.updateHostGameUI(); 
+                window.updateChatUI(); 
+                handleChatVisibility(); 
+            }
+            else if(roomState.status === 'ended') { 
+                if(roomState.endPhase === 'summary') {
+                    if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('주식 장 마감')) renderMarketSummary(); 
+                } else {
+                    if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('최종 시상식')) renderEndScreen(); 
+                }
+                handleChatVisibility(); 
+            }
+        }, 100); 
+    };
+
+    // 가챠 모달창 로직 추가
+    window.openGachaModal = () => {
+        let collectionHtml = GACHA_POOL.map(g => {
+            let hasIt = window.userCollection.includes(g.emoji);
+            let isEquipped = window.myEquippedEmoji === g.emoji;
+            let bg = hasIt ? (g.tier==='Gold'?'bg-yellow-600':(g.tier==='Silver'?'bg-slate-400':'bg-orange-800')) : 'bg-slate-800 opacity-50 grayscale';
+            return `<div class="p-2 rounded-xl border border-slate-600 ${bg} text-center flex flex-col items-center transition ${hasIt ? 'cursor-pointer hover:scale-105 shadow-lg' : ''}" ${hasIt ? `onclick="window.equipEmoji('${g.emoji}')"` : ''}>
+                <div class="text-3xl">${g.emoji}</div>
+                <div class="text-[10px] font-bold mt-1 text-white">${g.name}</div>
+                ${isEquipped ? '<div class="text-xs font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full mt-1 border border-indigo-400 shadow">장착중</div>' : ''}
+            </div>`;
+        }).join('');
+
+        const html = `<div id="gacha-modal" class="fixed inset-0 z-[500] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 fade-in">
+            <div class="bg-slate-800 p-6 rounded-3xl w-full max-w-lg border-2 border-yellow-500 max-h-[90vh] flex flex-col shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-black text-white"><i class="fas fa-crown text-yellow-400 mr-2"></i>내 컬렉션</h3>
+                    <div class="text-yellow-400 font-black bg-slate-900 px-4 py-2 rounded-full border border-yellow-500 shadow-inner">보유 토큰: <span id="token-count" class="text-xl">${window.userTokens}</span> 개</div>
+                </div>
+                <div class="text-xs text-slate-400 mb-4 text-center font-bold bg-slate-900/50 p-2 rounded-lg">획득한 이모지를 터치하여 내 닉네임 옆에 장착할 수 있습니다!</div>
+                <div class="grid grid-cols-3 md:grid-cols-4 gap-3 mb-6 overflow-y-auto pr-2 custom-scrollbar flex-grow pb-4 border-b border-slate-700">
+                    ${collectionHtml}
+                </div>
+                <button onclick="window.doGacha()" class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 p-4 rounded-xl font-black text-white shadow-[0_0_15px_rgba(234,179,8,0.5)] active:scale-95 transition mb-3 text-lg flex justify-center items-center gap-2 border-2 border-yellow-300">
+                    <i class="fas fa-gift text-2xl"></i> 1 토큰으로 가챠 뽑기!
+                </button>
+                <button onclick="document.getElementById('gacha-modal').remove()" class="w-full bg-slate-600 hover:bg-slate-500 p-3 rounded-xl font-black text-white shadow-lg active:scale-95 transition shrink-0 border border-slate-500">닫기</button>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+    };
+
+    window.equipEmoji = (emoji) => {
+        window.myEquippedEmoji = emoji;
+        localStorage.setItem('stockedu_equipped', emoji);
+        document.getElementById('gacha-modal').remove();
+        window.openGachaModal(); 
+        
+        // 닉네임 즉시 반영을 위해 호스트에 전달
+        if (roomState.status === 'lobby' || roomState.status === 'playing') {
+            const n = document.getElementById('join-name') ? document.getElementById('join-name').value.trim() : (myData ? myData.name : '');
+            if(n) sendPlayerAction({ type: 'JOIN', uid: myUid, name: n, equippedEmoji: emoji });
+        }
+    };
+
+    window.doGacha = () => {
+        if(window.userTokens < 1) return alert('토큰이 부족합니다! 게임을 플레이하여 획득하세요.');
+        window.userTokens--;
+        localStorage.setItem('stockedu_tokens', window.userTokens);
+        
+        let r = Math.random();
+        let tier = r < 0.1 ? 'Gold' : (r < 0.4 ? 'Silver' : 'Bronze'); // 10% Gold, 30% Silver, 60% Bronze
+        let pool = GACHA_POOL.filter(x => x.tier === tier);
+        let result = pool[Math.floor(Math.random() * pool.length)];
+        
+        if(!window.userCollection.includes(result.emoji)) {
+            window.userCollection.push(result.emoji);
+            localStorage.setItem('stockedu_collection', JSON.stringify(window.userCollection));
+        }
+
+        document.getElementById('gacha-modal').remove();
+        window.playSound('coin');
+        showCustomPopup(`${tier} 획득!`, `[${result.name}] 이모지 획득!`, result.emoji, tier === 'Gold' ? 'bg-yellow-600' : (tier === 'Silver' ? 'bg-slate-500' : 'bg-orange-800'));
+        setTimeout(() => window.openGachaModal(), 2000);
+    };
+
 
     window.openTargetModal = (itemId, itemIdx, type) => {
         if (type === 'auto') return;
@@ -314,7 +455,14 @@
             for (let i = lastChatLength; i < chats.length; i++) {
                 const msg = chats[i]; const isMe = msg.uid === myUid; const msgEl = document.createElement('div');
                 msgEl.className = `inline-block px-4 py-2 rounded-2xl text-xs md:text-sm font-bold shadow-[0_4px_15px_rgba(0,0,0,0.5)] max-w-[90%] break-words fade-in-up pointer-events-auto cursor-pointer ${isMe ? 'bg-indigo-600/95 text-white self-end' : 'bg-slate-800/95 text-slate-100 border border-slate-600/80'} backdrop-blur-md transition-all duration-500 ease-out z-[90]`;
-                msgEl.onclick = window.toggleChat; 
+                
+                // 팝업 알림 클릭 시 사라지기만 하도록 수정 (요청사항 3 반영)
+                msgEl.onclick = function(e) { 
+                    e.stopPropagation(); 
+                    this.style.opacity = '0'; 
+                    setTimeout(() => this.remove(), 300); 
+                }; 
+                
                 msgEl.innerHTML = `<span class="${isMe ? 'hidden' : 'text-yellow-400 text-[10px] md:text-xs mr-1.5'}">${msg.name}</span><br class="${isMe ? 'hidden' : ''}">${msg.text}`;
                 hud.appendChild(msgEl); hud.scrollTop = hud.scrollHeight;
                 setTimeout(() => { msgEl.style.opacity = '0'; msgEl.style.transform = 'translateY(-10px)'; setTimeout(() => msgEl.remove(), 500); }, 5000);
@@ -370,42 +518,6 @@
         return `<svg viewBox="0 -5 100 40" class="w-full h-12 md:h-16 sparkline-svg" preserveAspectRatio="none"><polyline points="${points}" fill="none" class="stroke-current ${colorClass}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
     };
 
-    const sendToPlayer = (uid, payload, conn) => {
-        const finalPayload = { ...payload, targetUid: uid }; 
-        if (conn && conn.open) conn.send(finalPayload); else if (bc) bc.postMessage(finalPayload);
-    };
-
-    let broadcastTimeout = null;
-    const hostBroadcast = () => {
-        if(currentRole !== 'host') return;
-        if (broadcastTimeout) clearTimeout(broadcastTimeout);
-        broadcastTimeout = setTimeout(() => {
-            // 동기화 부하 최적화: 채팅 배열 과도하게 커지는 것 방지
-            if (roomState.chats.length > 50) roomState.chats = roomState.chats.slice(-50);
-            
-            const payload = { type: 'SYNC', roomState, players };
-            Object.values(hostConns).forEach(conn => { if(conn && conn.open) conn.send(payload); }); if(bc) bc.postMessage(payload);
-            
-            if(roomState.status === 'lobby') {
-                updateLobbyPlayers();
-            }
-            else if(roomState.status === 'playing') { 
-                if(!document.getElementById('host-game-container')) window.renderHostGameSkeleton(); 
-                window.updateHostGameUI(); 
-                window.updateChatUI(); 
-                handleChatVisibility(); 
-            }
-            else if(roomState.status === 'ended') { 
-                if(roomState.endPhase === 'summary') {
-                    if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('주식 장 마감')) renderMarketSummary(); 
-                } else {
-                    if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('최종 시상식')) renderEndScreen(); 
-                }
-                handleChatVisibility(); 
-            }
-        }, 100); 
-    };
-
     window.shuffleTeams = () => { 
         if(currentRole !== 'host') return; 
         if(confirm("팀을 무작위로 다시 섞으시겠습니까?")) {
@@ -420,13 +532,12 @@
         }
     };
 
-    const handlePlayerAction = (data, conn = null) => {
+    const handlePlayerAction = (data) => {
         let p = players.find(x => x.id === data.uid);
         
         if (data.type === 'JOIN') {
             if (!p) {
-                if(conn) hostConns[data.uid] = conn;
-                p = { id: data.uid, name: data.name, cash: 5000, portfolio: {}, avgPrice: {}, items: [], dropBonus: 0, tradeCount: 0, correctAnswers: 0, wrongAnswers: 0, earnedFromQuiz: 0, buyAmount: 0, itemUseCount: 0, openBookCount: 0, blindedUntil: 0, shieldCount: 0, delistedCost: 0 };
+                p = { id: data.uid, name: data.name, equippedEmoji: data.equippedEmoji || '', cash: 5000, portfolio: {}, avgPrice: {}, items: [], dropBonus: 0, tradeCount: 0, correctAnswers: 0, wrongAnswers: 0, earnedFromQuiz: 0, buyAmount: 0, itemUseCount: 0, openBookCount: 0, blindedUntil: 0, shieldCount: 0, delistedCost: 0 };
                 if (roomState.mode === 'team') {
                     let smallestTeam = roomState.teams.slice().sort((a,b) => a.members.length - b.members.length)[0];
                     if (smallestTeam) { p.teamId = smallestTeam.id; smallestTeam.members.push(p.id); }
@@ -434,15 +545,14 @@
                 players.push(p); 
                 roomState.chats.push({ uid: 'system', name: '시스템', text: `${data.name}님이 입장하셨습니다.` }); 
             } else { 
-                if(conn) hostConns[data.uid] = conn; 
                 p.name = data.name; 
+                p.equippedEmoji = data.equippedEmoji || '';
             }
-            sendToPlayer(data.uid, { type: 'SYNC', roomState, players }, conn);
             hostBroadcast();
             return;
         }
 
-        if(!p) p = { name: 'Host' };
+        if(!p) p = { name: 'Host', equippedEmoji: '' };
         let fin = getFin(p.id);
         if (!fin.avgPrice) fin.avgPrice = {}; if (fin.shieldCount === undefined) fin.shieldCount = 0; if (fin.delistedCost === undefined) fin.delistedCost = 0;
 
@@ -495,8 +605,6 @@
                 player.buyAmount = 0; player.itemUseCount = 0; player.openBookCount = 0; player.blindedUntil = 0;
                 player.shieldCount = 0; player.delistedCost = 0;
             });
-            Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'SYNC', roomState, players}); });
-            if(bc) bc.postMessage({type: 'SYNC', roomState, players});
         }
         else if (data.type === 'MINIGAME_SUBMIT') {
             if(!roomState.miniGameScores) roomState.miniGameScores = {};
@@ -507,8 +615,7 @@
             roomState.miniGameEndTime = Date.now() + 15000; 
             roomState.chats.push({ uid: 'system', name: '시스템', text: '🚨 돌발 CEO 게임이 시작되었습니다! 화면을 터치하세요!' });
             roomState.endTime += 15000; roomState.nextPhaseTime += 15000; 
-            Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_START_MINIGAME', targetUid: 'all'}); });
-            if(bc) bc.postMessage({type: 'EVENT_START_MINIGAME', targetUid: 'all'});
+            sendToPlayer('all', {type: 'EVENT_START_MINIGAME'});
             hostBroadcast();
         }
         else if (data.type === 'BUY') {
@@ -521,7 +628,7 @@
                     fin.portfolio[data.stockId] = oldAmt + data.amt; fin.avgPrice[data.stockId] = (oldCost + cost) / fin.portfolio[data.stockId];
                     p.tradeCount++; p.buyAmount = (p.buyAmount || 0) + cost;
                     if (fin.portfolio['s7'] > 0) {
-                        let cb = Math.floor(cost * 0.02); fin.cash += cb; sendToPlayer(data.uid, { type: 'EVENT_CASHBACK', amt: cb }, conn);
+                        let cb = Math.floor(cost * 0.02); fin.cash += cb; sendToPlayer(data.uid, { type: 'EVENT_CASHBACK', amt: cb });
                     }
                     if (data.stockId === 's11' && !roomState.s11EventTriggered) {
                         let totalS11 = 0; let finsToCount = roomState.mode === 'team' ? roomState.teams : players;
@@ -542,7 +649,7 @@
                 let revenue = s.price * amt; fin.cash += revenue; fin.portfolio[data.stockId] -= amt;
                 if(fin.portfolio[data.stockId] <= 0) { delete fin.portfolio[data.stockId]; delete fin.avgPrice[data.stockId]; }
                 p.tradeCount++;
-                if (fin.portfolio['s7'] > 0) { let cb = Math.floor(revenue * 0.02); fin.cash += cb; sendToPlayer(data.uid, { type: 'EVENT_CASHBACK', amt: cb }, conn); }
+                if (fin.portfolio['s7'] > 0) { let cb = Math.floor(revenue * 0.02); fin.cash += cb; sendToPlayer(data.uid, { type: 'EVENT_CASHBACK', amt: cb }); }
             }
         } 
         else if (data.type === 'QUIZ_WRONG') { p.wrongAnswers = (p.wrongAnswers || 0) + 1; }
@@ -569,20 +676,20 @@
                 let t = r2 < 0.1 ? 'S' : (r2 < 0.3 ? 'A' : (r2 < 0.6 ? 'B' : 'C'));
                 let itemCands = ITEMS.filter(i => i.tier === t);
                 let item = itemCands.length > 0 ? itemCands[Math.floor(Math.random() * itemCands.length)] : ITEMS[ITEMS.length-1];
-                if(p.items.length >= 3) { fin.cash += 3000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_FULL' }, conn); } 
+                if(p.items.length >= 3) { fin.cash += 3000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_FULL' }); } 
                 else { p.items.push(item); acquiredItem = item; }
             }
-            sendToPlayer(data.uid, { type: 'EVENT_QUIZ_RESULT', earned: earned, bakeryBonus: bakeryBonus, item: acquiredItem, dasomBonus: dasomBonus }, conn);
+            sendToPlayer(data.uid, { type: 'EVENT_QUIZ_RESULT', earned: earned, bakeryBonus: bakeryBonus, item: acquiredItem, dasomBonus: dasomBonus });
         } 
         else if (data.type === 'USE_ITEM') {
-            if ((data.itemId === 'i19' || data.itemId === 'i20') && roomState.phase !== 'hint') return sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '이 아이템은 [예측 힌트]가 화면에 떴을 때 사용해야 정확한 결과를 알 수 있습니다!\n(아이템을 돌려받았습니다)' }, conn);
+            if ((data.itemId === 'i19' || data.itemId === 'i20') && roomState.phase !== 'hint') return sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '이 아이템은 [예측 힌트]가 화면에 떴을 때 사용해야 정확한 결과를 알 수 있습니다!\n(아이템을 돌려받았습니다)' });
             p.items.splice(data.itemIdx, 1); p.itemUseCount = (p.itemUseCount || 0) + 1;
             
-            if (data.itemId === 'i10') { fin.shieldCount = (fin.shieldCount || 0) + 1; sendToPlayer(data.uid, { type: 'EVENT_SHIELD_ON', count: fin.shieldCount }, conn); } 
-            else if (data.itemId === 'i1') { p.dropBonus = (p.dropBonus || 0) + 0.1; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '영구적으로 가방 아이템 획득 확률이 10% 증가했습니다!' }, conn); } 
-            else if (data.itemId === 'i6') { fin.cash += 50000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '금고에 현금 50,000원을 획득했습니다!' }, conn); } 
-            else if (data.itemId === 'i8') { fin.cash += 20000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '금고에 현금 20,000원을 획득했습니다!' }, conn); } 
-            else if (data.itemId === 'i9') { fin.cash += 5000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '금고에 현금 5,000원을 획득했습니다!' }, conn); } 
+            if (data.itemId === 'i10') { fin.shieldCount = (fin.shieldCount || 0) + 1; sendToPlayer(data.uid, { type: 'EVENT_SHIELD_ON', count: fin.shieldCount }); } 
+            else if (data.itemId === 'i1') { p.dropBonus = (p.dropBonus || 0) + 0.1; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '영구적으로 가방 아이템 획득 확률이 10% 증가했습니다!' }); } 
+            else if (data.itemId === 'i6') { fin.cash += 50000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '금고에 현금 50,000원을 획득했습니다!' }); } 
+            else if (data.itemId === 'i8') { fin.cash += 20000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '금고에 현금 20,000원을 획득했습니다!' }); } 
+            else if (data.itemId === 'i9') { fin.cash += 5000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '금고에 현금 5,000원을 획득했습니다!' }); } 
             else if (data.itemId === 'i19' || data.itemId === 'i20') {
                 let outcome = NEWS_EVENTS[roomState.nextEventIndex].results[roomState.nextOutcomeIndex];
                 let downStocks = []; let upStocks = [];
@@ -590,20 +697,20 @@
                 if(outcome.impact > 0 && outcome.targets) upStocks.push(...outcome.targets);
                 if(outcome.down_impact < 0 && outcome.down_targets) downStocks.push(...outcome.down_targets);
                 if(outcome.down_impact > 0 && outcome.down_targets) upStocks.push(...outcome.down_targets);
-                if (data.itemId === 'i19') { let names = downStocks.map(id => roomState.stocks.find(s=>s.id===id).name).join(', '); if(!names) names = '해당 없음 (폭락장 면면 특정 불가)'; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📉 다음 폭락 확정 종목:\n[${names}]` }, conn); } 
-                else { let names = upStocks.map(id => roomState.stocks.find(s=>s.id===id).name).join(', '); if(!names) names = '해당 없음 (폭등장 면면 특정 불가)'; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📈 다음 폭등 확정 종목:\n[${names}]` }, conn); }
+                if (data.itemId === 'i19') { let names = downStocks.map(id => roomState.stocks.find(s=>s.id===id).name).join(', '); if(!names) names = '해당 없음 (폭락장 면면 특정 불가)'; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📉 다음 폭락 확정 종목:\n[${names}]` }); } 
+                else { let names = upStocks.map(id => roomState.stocks.find(s=>s.id===id).name).join(', '); if(!names) names = '해당 없음 (폭등장 면면 특정 불가)'; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📈 다음 폭등 확정 종목:\n[${names}]` }); }
             } 
             else if (data.itemId === 'i3') { 
                 const nextEvt = NEWS_EVENTS[roomState.nextEventIndex]; const hintTarget = nextEvt.results[roomState.nextOutcomeIndex].targets ? nextEvt.results[roomState.nextOutcomeIndex].targets[0] : 's1';
-                const stockName = roomState.stocks.find(s=>s.id===hintTarget)?.name || '알수없음'; sendToPlayer(data.uid, { type: 'EVENT_HINT', stockName: stockName }, conn);
+                const stockName = roomState.stocks.find(s=>s.id===hintTarget)?.name || '알수없음'; sendToPlayer(data.uid, { type: 'EVENT_HINT', stockName: stockName });
             }
-            else if (data.itemId === 'i11') { p.openBookCount = 5; sendToPlayer(data.uid, { type: 'EVENT_OPENBOOK' }, conn); }
+            else if (data.itemId === 'i11') { p.openBookCount = 5; sendToPlayer(data.uid, { type: 'EVENT_OPENBOOK' }); }
             else if (data.itemId === 'i4') { 
                 let targetPlayer = players.find(x => x.id === data.targetId);
                 if(targetPlayer) {
                     let targetFin = getFin(targetPlayer.id); let targetLabel = roomState.mode === 'team' ? `'${targetFin.name}'` : `${targetPlayer.name}님`;
-                    if (targetFin.shieldCount > 0) { targetFin.shieldCount--; sendToPlayer(targetPlayer.id, { type: 'EVENT_DEFENDED', from: p.name, remain: targetFin.shieldCount }, hostConns[targetPlayer.id] || null); sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: targetLabel }, conn); } 
-                    else { let stolen = Math.floor(targetFin.cash * 0.5); fin.cash += stolen; targetFin.cash -= stolen; sendToPlayer(targetPlayer.id, { type: 'EVENT_ATTACKED', attackType: 'steal', from: p.name, amt: stolen }, hostConns[targetPlayer.id] || null); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${targetLabel}의 금고에서 현금 ${stolen.toLocaleString()}원을 훔쳤습니다!` }, conn); }
+                    if (targetFin.shieldCount > 0) { targetFin.shieldCount--; sendToPlayer(targetPlayer.id, { type: 'EVENT_DEFENDED', from: p.name, remain: targetFin.shieldCount }); sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: targetLabel }); } 
+                    else { let stolen = Math.floor(targetFin.cash * 0.5); fin.cash += stolen; targetFin.cash -= stolen; sendToPlayer(targetPlayer.id, { type: 'EVENT_ATTACKED', attackType: 'steal', from: p.name, amt: stolen }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${targetLabel}의 금고에서 현금 ${stolen.toLocaleString()}원을 훔쳤습니다!` }); }
                 }
             } 
             else if (data.itemId === 'i18') { 
@@ -611,29 +718,29 @@
                 if(targetPlayer) {
                     let targetFin = getFin(targetPlayer.id); let targetLabel = roomState.mode === 'team' ? `'${targetFin.name}'` : `${targetPlayer.name}님`;
                     if(targetFin.portfolio[data.stockId] > 0) {
-                        if (targetFin.shieldCount > 0) { targetFin.shieldCount--; sendToPlayer(targetPlayer.id, { type: 'EVENT_DEFENDED', from: p.name, remain: targetFin.shieldCount }, hostConns[targetPlayer.id] || null); sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: targetLabel }, conn); } 
+                        if (targetFin.shieldCount > 0) { targetFin.shieldCount--; sendToPlayer(targetPlayer.id, { type: 'EVENT_DEFENDED', from: p.name, remain: targetFin.shieldCount }); sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: targetLabel }); } 
                         else {
                             let totalAmt = targetFin.portfolio[data.stockId]; let amt = Math.floor(totalAmt / 2); if (amt <= 0 && totalAmt > 0) amt = 1; 
                             let oldAmt = fin.portfolio[data.stockId] || 0; let oldCost = oldAmt * (fin.avgPrice[data.stockId] || 0); let targetCost = targetFin.avgPrice[data.stockId] || roomState.stocks.find(s=>s.id===data.stockId).price;
                             fin.portfolio[data.stockId] = oldAmt + amt; fin.avgPrice[data.stockId] = (oldCost + (amt * targetCost)) / fin.portfolio[data.stockId];
                             targetFin.portfolio[data.stockId] -= amt; if(targetFin.portfolio[data.stockId] <= 0) { delete targetFin.portfolio[data.stockId]; delete targetFin.avgPrice[data.stockId]; }
                             let stockName = roomState.stocks.find(s=>s.id===data.stockId).name;
-                            sendToPlayer(targetPlayer.id, { type: 'EVENT_ATTACKED_YUMMY', from: p.name, stockName, amt }, hostConns[targetPlayer.id] || null); sendToPlayer(data.uid, { type: 'EVENT_YUMMY_SUCCESS', targetName: targetLabel, stockName, amt }, conn);
+                            sendToPlayer(targetPlayer.id, { type: 'EVENT_ATTACKED_YUMMY', from: p.name, stockName, amt }); sendToPlayer(data.uid, { type: 'EVENT_YUMMY_SUCCESS', targetName: targetLabel, stockName, amt });
                         }
-                    } else { sendToPlayer(data.uid, { type: 'EVENT_YUMMY_FAIL' }, conn); }
+                    } else { sendToPlayer(data.uid, { type: 'EVENT_YUMMY_FAIL' }); }
                 }
             } 
             else if (data.itemId === 'i21') { 
                 let targetPlayer = players.find(x => x.id === data.targetId);
                 if(targetPlayer) {
                     let targetFin = getFin(targetPlayer.id);
-                    if (targetFin.shieldCount > 0) { targetFin.shieldCount--; sendToPlayer(targetPlayer.id, { type: 'EVENT_DEFENDED', from: p.name, remain: targetFin.shieldCount }, hostConns[targetPlayer.id] || null); let label = roomState.mode === 'team' ? `${targetFin.name}의 방어막에` : `${targetPlayer.name}님의 방어막에`; sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: label }, conn); } 
-                    else if (targetPlayer.items.length > 0) { let stealIdx = Math.floor(Math.random() * targetPlayer.items.length); let stolenItem = targetPlayer.items.splice(stealIdx, 1)[0]; if(p.items.length >= 3) { fin.cash += 3000; } else { p.items.push(stolenItem); } sendToPlayer(targetPlayer.id, { type: 'EVENT_ITEM_STOLEN', from: p.name, itemName: stolenItem.name }, hostConns[targetPlayer.id] || null); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${targetPlayer.name}님의 [${stolenItem.name}] 아이템을 훔쳤습니다!` }, conn); } 
-                    else { sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${targetPlayer.name}님은 현재 가진 아이템이 없습니다...` }, conn); }
+                    if (targetFin.shieldCount > 0) { targetFin.shieldCount--; sendToPlayer(targetPlayer.id, { type: 'EVENT_DEFENDED', from: p.name, remain: targetFin.shieldCount }); let label = roomState.mode === 'team' ? `${targetFin.name}의 방어막에` : `${targetPlayer.name}님의 방어막에`; sendToPlayer(data.uid, { type: 'EVENT_ATTACK_BLOCKED', targetName: label }); } 
+                    else if (targetPlayer.items.length > 0) { let stealIdx = Math.floor(Math.random() * targetPlayer.items.length); let stolenItem = targetPlayer.items.splice(stealIdx, 1)[0]; if(p.items.length >= 3) { fin.cash += 3000; } else { p.items.push(stolenItem); } sendToPlayer(targetPlayer.id, { type: 'EVENT_ITEM_STOLEN', from: p.name, itemName: stolenItem.name }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${targetPlayer.name}님의 [${stolenItem.name}] 아이템을 훔쳤습니다!` }); } 
+                    else { sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${targetPlayer.name}님은 현재 가진 아이템이 없습니다...` }); }
                 }
             } else if (data.itemId === 'i12') { 
                 let target = players.find(x => x.id === data.targetId);
-                if(target) { const fakeNewsList = ["🚨 [속보] DS AI랩스 상장폐지 절차 돌입!", "🚨 [속보] 예린스페이스, 로켓 폭발로 파산 위기!", "🚨 [단독] 당신의 폰이 해킹당하고 있습니다!"]; const fakeNews = fakeNewsList[Math.floor(Math.random() * fakeNewsList.length)]; sendToPlayer(target.id, { type: 'EVENT_SPAM_NEWS', from: p.name, news: fakeNews }, hostConns[target.id] || null); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님의 화면에 가짜 뉴스를 도배했습니다!` }, conn); }
+                if(target) { const fakeNewsList = ["🚨 [속보] DS AI랩스 상장폐지 절차 돌입!", "🚨 [속보] 예린스페이스, 로켓 폭발로 파산 위기!", "🚨 [단독] 당신의 폰이 해킹당하고 있습니다!"]; const fakeNews = fakeNewsList[Math.floor(Math.random() * fakeNewsList.length)]; sendToPlayer(target.id, { type: 'EVENT_SPAM_NEWS', from: p.name, news: fakeNews }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님의 화면에 가짜 뉴스를 도배했습니다!` }); }
             } else if (data.itemId === 'i13') { 
                 let s = roomState.stocks.find(x => x.id === data.targetId);
                 if(s) { 
@@ -643,14 +750,20 @@
                     roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); 
                 }
             } else if (data.itemId === 'i5') { 
-                const fTime = Date.now() + 3000; players.forEach(x => { if(getFin(x.id).id !== fin.id) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
-                let msgText = roomState.mode === 'team' ? '우리 팀을 제외한 모두가' : '자신을 제외한 모두가'; roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! ${msgText} 3초간 얼어붙습니다.` }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `적들을 3초간 얼려버렸습니다!` }, conn);
+                // 아이스 에이지(i5) - 전체 기술에서 '지정한 상대'만 얼리도록 변경
+                let targetPlayer = players.find(x => x.id === data.targetId);
+                if(targetPlayer) {
+                    targetPlayer.frozenUntil = Date.now() + 4000;
+                    targetPlayer.frozenBy = p.name;
+                    roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 ${targetPlayer.name}님을 [아이스 에이지]로 얼렸습니다!` });
+                    sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${targetPlayer.name}님을 4초간 얼려버렸습니다!` });
+                }
             } else if (data.itemId === 'i7') { 
-                let oldAmt = fin.portfolio[data.targetId] || 0; let oldCost = oldAmt * (fin.avgPrice[data.targetId] || 0); fin.portfolio[data.targetId] = oldAmt + 1; fin.avgPrice[data.targetId] = oldCost / fin.portfolio[data.targetId]; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `선택한 주식 1주를 금고에 공짜로 얻었습니다!` }, conn);
+                let oldAmt = fin.portfolio[data.targetId] || 0; let oldCost = oldAmt * (fin.avgPrice[data.targetId] || 0); fin.portfolio[data.targetId] = oldAmt + 1; fin.avgPrice[data.targetId] = oldCost / fin.portfolio[data.targetId]; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `선택한 주식 1주를 금고에 공짜로 얻었습니다!` });
             } else if (data.itemId === 'i17') {
-                roomState.circuitBreakerUntil = Date.now() + 4000; roomState.circuitBreakerBy = p.name; roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 ${p.name}님이 서킷 브레이커를 발동했습니다! 모든 거래가 4초간 정지됩니다.` });
-                Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_CIRCUIT_BREAKER', by: p.name, targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_CIRCUIT_BREAKER', by: p.name, targetUid: 'all'});
-                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '서킷 브레이커를 발동했습니다! 4초간 거래가 정지됩니다.' }, conn);
+                roomState.circuitBreakerUntil = Date.now() + 5000; roomState.circuitBreakerBy = p.name; roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 ${p.name}님이 서킷 브레이커를 발동했습니다! 모든 거래가 5초간 정지됩니다.` });
+                sendToPlayer('all', {type: 'EVENT_CIRCUIT_BREAKER', by: p.name});
+                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '서킷 브레이커를 발동했습니다! 5초간 거래가 정지됩니다.' });
             }
         }
         else if (data.type === 'HOST_NEXT_PHASE') { roomState.endPhase = 'rankings'; }
@@ -662,20 +775,25 @@
                 let isEco = f.portfolio && f.portfolio['s9'] > 0; if (isEco) { tax = Math.floor(tax * 0.5); }
                 if (tax > 0) {
                     f.cash -= tax; taxTotal += tax; let targetMembers = roomState.mode === 'team' ? f.members : [f.id];
-                    targetMembers.forEach(mid => sendToPlayer(mid, { type: 'EVENT_WEALTH_TAX_INDIV', tax: tax, isEco: isEco }, hostConns[mid] || null));
+                    targetMembers.forEach(mid => sendToPlayer(mid, { type: 'EVENT_WEALTH_TAX_INDIV', tax: tax, isEco: isEco }));
                 }
             }
             if (sortedRanks.length > topLimit && taxTotal > 0) {
                 let lowerRanks = sortedRanks.slice(topLimit); let share = Math.floor(taxTotal / lowerRanks.length); lowerRanks.forEach(x => { x.fin.cash += share; });
             }
             roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 [부유세] 상위권 현금 재산을 징수하여 하위권에 분배했습니다!` });
-            Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_WEALTH_TAX_GLOBAL', taxTotal, targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_WEALTH_TAX_GLOBAL', taxTotal, targetUid: 'all'});
+            sendToPlayer('all', {type: 'EVENT_WEALTH_TAX_GLOBAL', taxTotal});
         }
         hostBroadcast();
     };
 
     const sendPlayerAction = (action) => {
-        if (currentRole === 'host') handlePlayerAction(action, null); else if (myConn && myConn.open) myConn.send(action); else if (bc) bc.postMessage({ type: 'PLAYER_ACTION', action });
+        if (currentRole === 'host') handlePlayerAction(action); 
+        else {
+            if(window.fbDb && roomCode) {
+                window.fbPush(window.fbRef(window.fbDb, `rooms/${roomCode}/actions`), action);
+            }
+        }
     };
 
     window.setMode = (mode) => {
@@ -686,7 +804,6 @@
 
     window.renderHome = () => {
         window.stopBGM(); currentRole = null; roomCode = null; isWaitingForResult = false;
-        if(peer) peer.destroy(); peer = null; if(bc) bc.close(); bc = null;
         if(hostTimerInterval) clearInterval(hostTimerInterval); if(playerTimerInterval) clearInterval(playerTimerInterval);
         lastChatLength = 0; handleChatVisibility();
         
@@ -706,6 +823,10 @@
                     <button onclick="window.joinRoom()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xl py-4 rounded-xl transition shadow-[0_0_20px_rgba(79,70,229,0.4)] active:scale-95 mt-2">게임 참가하기 <i class="fas fa-sign-in-alt ml-1"></i></button>
                     ${rejoinHtml}
                 </div>
+                
+                <button onclick="window.openGachaModal()" class="mt-4 w-full max-w-sm bg-slate-800 text-yellow-400 font-bold py-4 px-6 rounded-2xl border border-yellow-500/50 hover:bg-slate-700 transition shadow-md flex justify-center items-center gap-2 active:scale-95">
+                    <i class="fas fa-gift text-xl"></i> 내 컬렉션 / 가챠 (보유 토큰: <span class="text-white">${window.userTokens}</span>)
+                </button>
             </div>`;
     };
 
@@ -767,6 +888,8 @@
     };
 
     const finalizeCreateRoom = (finalWords) => {
+        if(!window.fbDb) return alert("서버 연동 초기화 중입니다. 1~2초 후 다시 눌러주세요!");
+        
         roomCode = Math.floor(1000 + Math.random() * 9000).toString();
         const durationMs = parseInt(document.getElementById('game-duration')?.value || 15) * 60 * 1000;
         const mode = document.getElementById('game-mode-val')?.value || 'indiv'; 
@@ -786,14 +909,26 @@
             circuitBreakerUntil: 0, circuitBreakerBy: '', extraTimeTriggered: false, turnCount: 0, s11EventTriggered: false, 
             miniGameActive: false, miniGameScores: {}, miniGameEndTime: 0 
         };
-        players = []; hostConns = {}; lastChatLength = 0;
+        players = []; lastChatLength = 0;
         
         document.getElementById('app').innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-4"><div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div><div class="text-xl font-bold animate-pulse">방 개설 중...</div></div>`;
         
-        let hostReady = false; const initLobby = () => { if(hostReady) return; hostReady = true; renderLobby(); };
-        bc = new BroadcastChannel('stockedu_' + roomCode); bc.onmessage = (e) => { if (e.data.type === 'PLAYER_ACTION') handlePlayerAction(e.data.action, null); };
-        try { peer = new Peer('stockedu-' + roomCode); peer.on('open', () => initLobby()); peer.on('error', () => initLobby()); peer.on('connection', (conn) => { conn.on('data', (d) => handlePlayerAction(d, conn)); }); } catch(e) { initLobby(); }
-        setTimeout(initLobby, 2000); 
+        // Firebase에 방 생성
+        window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/state`), roomState);
+        window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/players`), players);
+        window.fbOnDisconnect(window.fbRef(window.fbDb, `rooms/${roomCode}`)).remove();
+
+        // 학생 행동(액션) 수신 대기
+        window.fbOnChildAdded(window.fbRef(window.fbDb, `rooms/${roomCode}/actions`), (snapshot) => {
+            const action = snapshot.val();
+            if(action) {
+                handlePlayerAction(action);
+                // 처리한 액션은 삭제하여 찌꺼기 방지
+                window.fbRemove(window.fbRef(window.fbDb, `rooms/${roomCode}/actions/${snapshot.key}`));
+            }
+        });
+
+        setTimeout(renderLobby, 500); 
     };
 
     const renderLobby = () => {
@@ -834,8 +969,21 @@
         const grid = document.getElementById('player-grid');
         if(grid) {
             if (roomState.mode === 'team') {
-                grid.innerHTML = roomState.teams.map(t => { let membersHtml = t.members.map(mid => `<span class="bg-slate-700 px-2 py-1 rounded text-xs text-white mr-1 mb-1 inline-block">${players.find(p=>p.id===mid)?.name}</span>`).join(''); if(!membersHtml) membersHtml = '<span class="text-slate-500 text-xs">대기 중...</span>'; return `<div class="w-full bg-slate-800 p-3 rounded-xl mb-3 border border-slate-600 shadow-md"><div class="font-black text-yellow-400 mb-2 text-sm border-b border-slate-600 pb-1">${t.name} <span class="text-slate-400 ml-1">(${t.members.length}명)</span></div><div class="flex flex-wrap">${membersHtml}</div></div>`; }).join('');
-            } else { grid.innerHTML = players.map(p => `<div class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm font-bold flex items-center shadow-md"><div class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></div>${p.name}</div>`).join(''); }
+                grid.innerHTML = roomState.teams.map(t => { 
+                    let membersHtml = t.members.map(mid => {
+                        let p = players.find(x=>x.id===mid);
+                        let emj = p && p.equippedEmoji ? `<span class="mr-1">${p.equippedEmoji}</span>` : '';
+                        return `<span class="bg-slate-700 px-2 py-1 rounded text-xs text-white mr-1 mb-1 inline-block">${emj}${p ? p.name : ''}</span>`;
+                    }).join(''); 
+                    if(!membersHtml) membersHtml = '<span class="text-slate-500 text-xs">대기 중...</span>'; 
+                    return `<div class="w-full bg-slate-800 p-3 rounded-xl mb-3 border border-slate-600 shadow-md"><div class="font-black text-yellow-400 mb-2 text-sm border-b border-slate-600 pb-1">${t.name} <span class="text-slate-400 ml-1">(${t.members.length}명)</span></div><div class="flex flex-wrap">${membersHtml}</div></div>`; 
+                }).join('');
+            } else { 
+                grid.innerHTML = players.map(p => {
+                    let emj = p.equippedEmoji ? `<span class="mr-1 text-lg">${p.equippedEmoji}</span>` : '';
+                    return `<div class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm font-bold flex items-center shadow-md"><div class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></div>${emj}${p.name}</div>`;
+                }).join(''); 
+            }
         }
         const cnt = document.getElementById('player-count'); if(cnt) cnt.innerText = players.length;
         const btn = document.getElementById('btn-start'); if(btn && currentRole === 'host') { btn.disabled = players.length === 0; btn.classList.toggle('opacity-50', players.length===0); }
@@ -942,18 +1090,18 @@
                         if (bestTeamId && bestTeamScore > 0) {
                             let t = roomState.teams.find(x=>x.id===bestTeamId); t.cash += 100000;
                             roomState.chats.push({ uid: 'system', name: '시스템', text: `🎮 CEO 게임 종료! [${t.name}] 팀이 합산 ${bestTeamScore}점으로 우승하여 10만원을 획득했습니다!` });
-                            Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_MINIGAME_RESULT', winnerName: t.name, score: bestTeamScore, targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_MINIGAME_RESULT', winnerName: t.name, score: bestTeamScore, targetUid: 'all'});
+                            sendToPlayer('all', {type: 'EVENT_MINIGAME_RESULT', winnerName: t.name, score: bestTeamScore});
                         } else {
-                            Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_MINIGAME_RESULT', winnerName: '없음', score: 0, targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_MINIGAME_RESULT', winnerName: '없음', score: 0, targetUid: 'all'});
+                            sendToPlayer('all', {type: 'EVENT_MINIGAME_RESULT', winnerName: '없음', score: 0});
                         }
                     } else {
                         Object.entries(roomState.miniGameScores).forEach(([uid, score]) => { if (score > bestIndivScore) { bestIndivScore = score; bestUid = uid; } });
                         if (bestUid && bestIndivScore > 0) {
                             let p = players.find(x=>x.id===bestUid); p.cash += 100000;
                             roomState.chats.push({ uid: 'system', name: '시스템', text: `🎮 CEO 게임 종료! ${p.name}님이 ${bestIndivScore}점으로 우승하여 10만원을 획득했습니다!` });
-                            Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_MINIGAME_RESULT', winnerName: p.name, score: bestIndivScore, targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_MINIGAME_RESULT', winnerName: p.name, score: bestIndivScore, targetUid: 'all'});
+                            sendToPlayer('all', {type: 'EVENT_MINIGAME_RESULT', winnerName: p.name, score: bestIndivScore});
                         } else {
-                            Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_MINIGAME_RESULT', winnerName: '없음', score: 0, targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_MINIGAME_RESULT', winnerName: '없음', score: 0, targetUid: 'all'});
+                            sendToPlayer('all', {type: 'EVENT_MINIGAME_RESULT', winnerName: '없음', score: 0});
                         }
                     }
                     hostBroadcast();
@@ -975,7 +1123,7 @@
                     finsToDiv.forEach(f => {
                         if (f.portfolio['s1'] >= 50) {
                             let nextOutcome = NEWS_EVENTS[roomState.nextEventIndex].results[roomState.nextOutcomeIndex]; let hintTarget = nextOutcome.targets ? nextOutcome.targets[0] : null;
-                            if(hintTarget) { let sn = roomState.stocks.find(x=>x.id===hintTarget)?.name; let targetMembers = roomState.mode === 'team' ? f.members : [f.id]; targetMembers.forEach(mid => sendToPlayer(mid, { type: 'EVENT_AI_PREDICT', stockName: sn }, hostConns[mid] || null)); }
+                            if(hintTarget) { let sn = roomState.stocks.find(x=>x.id===hintTarget)?.name; let targetMembers = roomState.mode === 'team' ? f.members : [f.id]; targetMembers.forEach(mid => sendToPlayer(mid, { type: 'EVENT_AI_PREDICT', stockName: sn })); }
                         }
                     });
                     hostBroadcast();
@@ -1014,8 +1162,8 @@
                         if (f.portfolio['s10'] > 0) { let amt = Math.floor(f.portfolio['s10'] * roomState.stocks.find(s=>s.id==='s10').price * 0.05); amt = Math.min(amt, 500000); f.cash += amt; totalDiv += amt; divMsg.push(`[경환캐피탈] 예금 이자 ${amt.toLocaleString()}원${amt===500000?' (최대 한도)':''}`); }
                         if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(amt, 300000); f.cash += amt; totalDiv += amt; divMsg.push(`[병하전자] 고정 배당금 ${amt.toLocaleString()}원${amt===300000?' (최대 한도)':''}`); }
                         if (totalDiv > 0) {
-                            if (roomState.mode === 'team') { f.members.forEach(mid => sendToPlayer(mid, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[mid] || null)); } 
-                            else { sendToPlayer(f.id, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[f.id] || null); }
+                            if (roomState.mode === 'team') { f.members.forEach(mid => sendToPlayer(mid, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv })); } 
+                            else { sendToPlayer(f.id, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }); }
                         }
                     });
 
@@ -1028,8 +1176,7 @@
                                 if (f.portfolio[stock.id]) { f.delistedCost = (f.delistedCost || 0) + (f.portfolio[stock.id] * (f.avgPrice[stock.id] || 0)); delete f.portfolio[stock.id]; delete f.avgPrice[stock.id]; }
                             });
                             roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 [상장폐지] ${oldName} 주가가 300원 미만으로 하락하여 휴지조각이 되었습니다.` });
-                            Object.values(hostConns).forEach(conn => { if(conn && conn.open) conn.send({ type: 'EVENT_DELISTED', oldName: oldName, newName: stock.name, targetUid: 'all' }); });
-                            if(bc) bc.postMessage({ type: 'EVENT_DELISTED', oldName: oldName, newName: stock.name, targetUid: 'all' });
+                            sendToPlayer('all', { type: 'EVENT_DELISTED', oldName: oldName, newName: stock.name });
                         }
                     });
 
@@ -1070,7 +1217,7 @@
                         stock.history.push(np); if(stock.history.length > 100) stock.history.shift(); stock.price = np;
                     });
                     roomState.news = "🚨 [최종 마감 직전 폭풍 변동!]\n" + outcome.resultMsg; roomState.phase = 'result'; roomState.chats.push({ uid: 'system', name: '시스템', text: '🚨 00:00 시간 종료! 최종 시장 폭풍 변동이 몰아쳤습니다! 10초 후 게임이 마감됩니다!' });
-                    Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_EXTRA_TIME', targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_EXTRA_TIME', targetUid: 'all'});
+                    sendToPlayer('all', {type: 'EVENT_EXTRA_TIME'});
                     hostBroadcast();
                 } else { window.endGameRoom(); }
             }
@@ -1081,88 +1228,156 @@
         window.stopBGM(); 
         roomState.status = 'ended'; 
         roomState.endPhase = 'summary'; 
-        if(hostTimerInterval) clearInterval(hostTimerInterval); 
-        hostBroadcast(); 
+        
         if (currentRole === 'host') {
+            if(hostTimerInterval) clearInterval(hostTimerInterval); 
+            
+            // 토큰 보상 계산 로직 추가
+            let sorted = getRankings();
+            let tokenRewards = {};
+            
+            if(roomState.mode === 'team') {
+                sorted.forEach((team, idx) => {
+                    let reward = 1; // 기본 1개
+                    if(idx === 0) reward += 2; // 1등팀 +2
+                    else if(idx === 1) reward += 1; // 2등팀 +1
+                    team.members.forEach(mid => tokenRewards[mid] = reward);
+                });
+            } else {
+                sorted.forEach((p, idx) => {
+                    let reward = 1; // 기본 1개
+                    if(idx === 0) reward += 2; // 개인 1등 +2
+                    else if(idx >= 1 && idx <= 4) reward += 1; // 개인 2~5등 +1
+                    tokenRewards[p.id] = reward;
+                });
+            }
+
+            // 모든 클라이언트에게 토큰 보상 전송
+            sendToPlayer('all', { type: 'EVENT_GAME_END_TOKENS', rewards: tokenRewards });
+
+            hostBroadcast(); 
             document.getElementById('app').innerHTML = '';
             renderMarketSummary();
         }
     };
 
+    const handleStateTransitions = (prevStatus, prevPhase) => {
+        if (roomState.status === 'lobby') {
+            if(!document.getElementById('player-grid')) renderLobby();
+            else updateLobbyPlayers();
+        }
+        else if (roomState.status === 'playing') {
+            if(prevStatus !== 'playing') { 
+                isWaitingForResult = false; 
+                window.playSound('bgm'); document.getElementById('app').innerHTML = ''; renderPlayerGame(); handleChatVisibility(); 
+            } else { window.updatePlayerGameUI(); }
+            window.updateChatUI();
+        }
+        else if (roomState.status === 'ended') {
+            if(roomState.endPhase === 'summary' && prevPhase !== 'summary') { document.getElementById('app').innerHTML = ''; renderMarketSummary(); }
+            else if(roomState.endPhase === 'rankings' && prevPhase !== 'rankings') { window.stopBGM(); document.getElementById('app').innerHTML = ''; renderEndScreen(); }
+            handleChatVisibility();
+        }
+    };
+
+    const handleEvent = (data) => {
+        if(!data) return;
+        if (data.type === 'EVENT_QUIZ_RESULT') {
+            isWaitingForResult = false; window.vibrateDevice(50); window.flashScreen('bg-green-400/30'); window.playSound('coin');
+            let extraMsg = data.bakeryBonus > 0 ? `\n(지원베이커리 혜택 +${data.bakeryBonus.toLocaleString()}원 포함!)` : ''; if(data.dasomBonus > 0) extraMsg += `\n(다솜게임즈 효과로 아이템 등장 확률 증가!)`;
+            if (data.item) { window.playSound('item'); extraMsg += `\n\n🎁 [${data.item.tier}급] ${data.item.name} 획득!`; }
+            showCustomPopup("정답!", `총 ${data.earned.toLocaleString()}원을 확보했습니다.${extraMsg}`, "⭕", "bg-green-600"); quizCurrentQuestion = null; document.getElementById('player-game-container')?.remove(); renderPlayerGame();
+        }
+        else if (data.type === 'EVENT_EXTRA_TIME') { window.playSound('siren'); window.flashScreen('bg-red-600/50'); showCustomPopup('🚨 시간 종료! 라스트 댄스 10초!', '00:00 시간 마감! 마지막 시장 대폭풍 변동이 적용되었습니다!', '⏰', 'bg-red-800', 1000); }
+        else if (data.type === 'EVENT_START_MINIGAME') { window.playSound('item'); window.flashScreen('bg-green-600/40'); window.startMiniGameUI(); }
+        else if (data.type === 'EVENT_MINIGAME_RESULT') {
+            window.playSound('coin'); const overlay = document.getElementById('minigame-overlay');
+            const resultHtml = `<div class="text-7xl mb-4 animate-bounce">🏆</div><h2 class="text-4xl font-black text-white text-center mb-6">게임 종료!</h2><div class="bg-slate-800 p-8 rounded-3xl text-center border-2 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.5)] w-full max-w-sm"><div class="text-slate-300 font-bold mb-2 text-lg">최고 득점 우승</div><div class="text-3xl font-black text-yellow-400 mb-3">${data.winnerName}</div><div class="text-xl font-bold text-white mb-6">${data.score} 점</div><div class="mt-4 text-green-400 font-black bg-green-900/40 py-3 rounded-xl border border-green-500">💰 100,000 원 지급 완료!</div></div><button onclick="document.getElementById('minigame-overlay').remove()" class="mt-8 w-full max-w-sm bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition text-xl border border-indigo-400">확인 (닫기)</button>`;
+            if(overlay) { overlay.innerHTML = resultHtml; setTimeout(() => { if(document.getElementById('minigame-overlay')) document.getElementById('minigame-overlay').remove(); }, 6000); } else { showCustomPopup('CEO 게임 결과', `우승: ${data.winnerName} (${data.score}점)\n상금 10만원이 지급되었습니다!`, '🏆', 'bg-indigo-800'); }
+            window.updatePlayerGameUI();
+        }
+        else if (data.type === 'EVENT_CASHBACK') { window.showToast(`유진커머스 2% 캐시백 (+${data.amt.toLocaleString()}원)`, '🛒'); }
+        else if (data.type === 'EVENT_AI_PREDICT') { window.playSound('item'); showCustomPopup('🤖 AI 은밀한 분석', `DS AI랩스 50주 이상 대주주 혜택!\n\n다음 턴에 [${data.stockName}] 주가의\n큰 변동이 예측됩니다.`, '🤖', 'bg-indigo-800'); }
+        else if (data.type === 'EVENT_DIVIDEND') { window.playSound('coin'); showCustomPopup("💰 배당금 입금", data.msg, "💵", "bg-green-700"); }
+        else if (data.type === 'EVENT_DELISTED') { window.vibrateDevice([500, 200, 500]); window.flashScreen('bg-red-700/60'); window.playSound('siren'); showCustomPopup("🚨 상장폐지!", `[${data.oldName}] 주가가 300원 미만으로 떨어져 상장폐지되었습니다!\n보유 주식이 모두 휴지조각이 되었습니다.\n(이후 '${data.newName}'(으)로 재상장됩니다)`, "💀", "bg-red-800", 3000); document.getElementById('player-game-container')?.remove(); renderPlayerGame(); }
+        else if (data.type === 'EVENT_WEALTH_TAX_GLOBAL') { window.vibrateDevice([300, 100, 300]); window.flashScreen('bg-yellow-500/50'); window.playSound('siren'); showCustomPopup("🚨 부유세 징수!", `정부가 상위권의 세금을 거둬 지원금을 분배했습니다!\n(총 분배액: ${data.taxTotal.toLocaleString()}원)`, "💸", "bg-yellow-700", 3000); document.getElementById('player-game-container')?.remove(); renderPlayerGame(); }
+        else if (data.type === 'EVENT_WEALTH_TAX_INDIV') { setTimeout(() => { if(data.isEco) window.showToast(`♻️ 형진에코 혜택: 부유세 50% 감면! (-${data.tax.toLocaleString()}원)`, '♻️'); }, 3500); }
+        else if (data.type === 'EVENT_ITEM_EFFECT') { window.playSound('item'); showCustomPopup('아이템 사용', data.msg, '✨', 'bg-indigo-600'); }
+        else if (data.type === 'EVENT_SHIELD_ON') { window.playSound('item'); let shieldTarget = roomState.mode === 'team' ? '우리 팀 금고 방어막이' : '방어막이'; showCustomPopup('🛡️ 방어막 가동!', `${shieldTarget} 활성화 되었습니다.\n(현재 방어 횟수: ${data.count}회)`, '🛡️', 'bg-blue-600'); document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); }
+        else if (data.type === 'EVENT_ITEM_FULL') { window.playSound('coin'); showCustomPopup('가방 가득 참!', `인벤토리가 부족하여 아이템 대신 현금 3,000원으로 환전되었습니다!`, '💰', 'bg-slate-700'); }
+        else if (data.type === 'EVENT_HINT') { showCustomPopup('극비 정보', `곧 [${data.stockName}] 주가에\n큰 변동이 있을 예정입니다.`, '🤫', 'bg-yellow-600'); }
+        else if (data.type === 'EVENT_ATTACKED') { handleAttacked(data); }
+        else if (data.type === 'EVENT_ITEM_STOLEN') { window.vibrateDevice([200, 100]); window.flashScreen('bg-purple-500/50'); window.playSound('wrong'); showCustomPopup('✋ 나쁜 손!', `${data.from}님이 당신의 개인 가방에서 [${data.itemName}] 아이템을 훔쳐갔습니다!`, '🥷', 'bg-purple-800'); document.getElementById('player-game-container')?.remove(); renderPlayerGame(); }
+        else if (data.type === 'EVENT_ATTACKED_YUMMY') { window.vibrateDevice([200, 100, 200]); window.flashScreen('bg-purple-500/50'); window.playSound('attacked'); let targetLabel = roomState.mode === 'team' ? '우리 팀 금고의' : '당신의'; showCustomPopup('🚨 적대적 인수 당함!', `${data.from}님이 ${targetLabel} [${data.stockName}] 주식\n지분의 절반(${data.amt}주)을 강제로 인수 합병했습니다!`, '😋', 'bg-purple-800'); }
+        else if (data.type === 'EVENT_YUMMY_SUCCESS') { window.playSound('coin'); window.flashScreen('bg-green-400/30'); showCustomPopup('🎯 인수 성공!', `${data.targetName} [${data.stockName}] 주식\n절반(${data.amt}주)을 강제로 빼앗아왔습니다!`, '😋', 'bg-green-600'); }
+        else if (data.type === 'EVENT_YUMMY_FAIL') { showCustomPopup('❌ 텅~', `아쉽지만 상대방이 해당 주식을 더이상 안 가지고 있습니다.`, '😋', 'bg-slate-700'); }
+        else if (data.type === 'EVENT_DEFENDED') { window.vibrateDevice([100, 100]); showCustomPopup('🛡️ 방어 성공!', `${data.from}님의 치명적인 공격을 방어막으로 막아냈습니다!\n(남은 방어 횟수: ${data.remain}회)`, '🛡️', 'bg-blue-700'); document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); }
+        else if (data.type === 'EVENT_ATTACK_BLOCKED') { window.vibrateDevice([100, 100]); showCustomPopup('❌ 공격 실패', `아뿔싸! ${data.targetName} 방어막을 가동하고 있었습니다!`, '🛡️', 'bg-red-700'); }
+        else if (data.type === 'EVENT_OPENBOOK') { showCustomPopup('📖 오픈북 발동!', '다음 5번의 퀴즈는 오답이 사라지고 정답만 보입니다!', '📖', 'bg-indigo-600'); }
+        else if (data.type === 'EVENT_CIRCUIT_BREAKER') { window.playSound('siren'); window.flashScreen('bg-red-600/40'); showCustomPopup('🚨 서킷 브레이커', `${data.by}님이 서킷 브레이커를 발동했습니다!\n5초간 모든 거래가 중지됩니다.\n(비스트하트 코인은 거래 가능)`, '🛑', 'bg-red-800'); }
+        else if (data.type === 'EVENT_SPAM_NEWS') {
+            window.vibrateDevice([200, 50, 200]); window.flashScreen('bg-red-600/50'); window.playSound('siren');
+            for(let i=0; i<6; i++) { setTimeout(() => { let div = document.createElement('div'); div.className = 'fixed z-[9999] bg-red-800 border-4 border-red-500 p-4 rounded-xl shadow-2xl flex flex-col items-center justify-center animate-bounce cursor-pointer w-48 text-center'; div.style.left = (5 + Math.random()*60) + '%'; div.style.top = (5 + Math.random()*60) + '%'; div.style.transform = `rotate(${(Math.random()-0.5)*30}deg)`; div.style.pointerEvents = 'auto'; div.innerHTML = `<div class="text-3xl mb-2">📰</div><div class="text-white font-black whitespace-pre-wrap pointer-events-none">${data.news}</div><div class="text-xs text-yellow-300 mt-2 font-bold animate-pulse pointer-events-none">(터치해서 닫기)</div>`; const closeFunc = function(e) { e.preventDefault(); e.stopPropagation(); window.playSound('tick'); this.remove(); }; div.onclick = closeFunc; div.ontouchstart = closeFunc; document.body.appendChild(div); }, i * 150); }
+        }
+        else if (data.type === 'EVENT_GAME_END_TOKENS') {
+            let myReward = data.rewards[myUid] || 0;
+            if(myReward > 0) {
+                window.userTokens += myReward;
+                localStorage.setItem('stockedu_tokens', window.userTokens);
+                setTimeout(() => {
+                    window.playSound('coin');
+                    showCustomPopup("🎁 게임 보상 획득!", `수고하셨습니다!\n플레이 및 등수 보상으로\n가챠 토큰 ${myReward}개를 획득했습니다!`, "🪙", "bg-yellow-600");
+                }, 1500); 
+            }
+        }
+    };
+
     window.joinRoom = () => {
+        if(!window.fbDb) return alert("서버 연동 초기화 중입니다. 잠시 후 다시 시도해주세요.");
         const c = document.getElementById('join-code').value.toUpperCase(); const n = document.getElementById('join-name').value.trim();
         if (c.length!==4 || !n) return showCustomPopup("입력 오류", "방 번호와 닉네임을 정확히 입력하세요.", "⚠️", "bg-red-600");
         document.getElementById('app').innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-4"><div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div><div class="text-xl font-bold animate-pulse">방 접속 중...</div><button onclick="window.renderHome()" class="mt-4 text-slate-400 hover:text-white underline">취소하고 돌아가기</button></div>`;
         roomCode = c; currentRole = 'player'; lastChatLength = 0; localStorage.setItem('stockedu_session', JSON.stringify({ roomCode: c, uid: myUid, name: n })); savedSession = { roomCode: c, uid: myUid, name: n };
-        let joinTimeout = setTimeout(() => { if (!myData) { showCustomPopup("접속 지연", "네트워크가 불안정합니다. 다시 시도해주세요.", "⏳", "bg-orange-600"); window.renderHome(); } }, 10000); 
+        let joinTimeout = setTimeout(() => { if (!myData) { showCustomPopup("접속 지연", "네트워크가 불안정합니다. 방 번호가 맞는지 확인해주세요.", "⏳", "bg-orange-600"); window.renderHome(); } }, 10000); 
 
-        const handleSync = (data) => {
+        // Firebase 리스너 세팅
+        const stateRef = window.fbRef(window.fbDb, `rooms/${roomCode}/state`);
+        window.fbOnValue(stateRef, (snapshot) => {
             if (joinTimeout) { clearTimeout(joinTimeout); joinTimeout = null; }
+            const newState = snapshot.val();
+            if(!newState) {
+                if (roomState.status === 'lobby' && !myData) { showCustomPopup("입장 불가", "존재하지 않는 방입니다.", "❌", "bg-red-600"); window.renderHome(); }
+                return;
+            }
             const prevStatus = roomState.status; const prevPhase = roomState.endPhase;
-            roomState = data.roomState; players = data.players; myData = players.find(p => p.id === myUid);
-            
-            if (roomState.status === 'lobby') {
-                if(document.getElementById('app').innerHTML === '' || !document.getElementById('player-grid')) renderLobby();
-                else updateLobbyPlayers();
-            }
-            else if (roomState.status === 'playing') {
-                if(prevStatus !== 'playing') { 
-                    isWaitingForResult = false; 
-                    window.playSound('bgm'); document.getElementById('app').innerHTML = ''; renderPlayerGame(); handleChatVisibility(); 
-                } else { window.updatePlayerGameUI(); }
-                window.updateChatUI();
-            }
-            else if (roomState.status === 'ended') {
-                if(roomState.endPhase === 'summary' && prevPhase !== 'summary') { document.getElementById('app').innerHTML = ''; renderMarketSummary(); }
-                else if(roomState.endPhase === 'rankings' && prevPhase !== 'rankings') { window.stopBGM(); document.getElementById('app').innerHTML = ''; renderEndScreen(); }
-                handleChatVisibility();
-            }
-        };
+            roomState = newState;
+            if(myData) handleStateTransitions(prevStatus, prevPhase);
+        });
 
-        bc = new BroadcastChannel('stockedu_' + roomCode);
-        bc.onmessage = (e) => {
-            const data = e.data; if (data.type === 'SYNC') handleSync(data);
-            else if (data.type === 'EVENT_QUIZ_RESULT' && data.targetUid === myUid) {
-                isWaitingForResult = false; window.vibrateDevice(50); window.flashScreen('bg-green-400/30'); window.playSound('coin');
-                let extraMsg = data.bakeryBonus > 0 ? `\n(지원베이커리 혜택 +${data.bakeryBonus.toLocaleString()}원 포함!)` : ''; if(data.dasomBonus > 0) extraMsg += `\n(다솜게임즈 효과로 아이템 등장 확률 증가!)`;
-                if (data.item) { window.playSound('item'); extraMsg += `\n\n🎁 [${data.item.tier}급] ${data.item.name} 획득!`; }
-                showCustomPopup("정답!", `총 ${data.earned.toLocaleString()}원을 확보했습니다.${extraMsg}`, "⭕", "bg-green-600"); quizCurrentQuestion = null; document.getElementById('player-game-container')?.remove(); renderPlayerGame();
+        const playersRef = window.fbRef(window.fbDb, `rooms/${roomCode}/players`);
+        window.fbOnValue(playersRef, (snapshot) => {
+            players = snapshot.val() || [];
+            myData = players.find(p => p.id === myUid);
+            if(myData) {
+                if(roomState.status === 'lobby') updateLobbyPlayers();
+                else if(roomState.status === 'playing') window.updatePlayerGameUI();
             }
-            else if (data.type === 'EVENT_EXTRA_TIME' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('siren'); window.flashScreen('bg-red-600/50'); showCustomPopup('🚨 시간 종료! 라스트 댄스 10초!', '00:00 시간 마감! 마지막 시장 대폭풍 변동이 적용되었습니다!', '⏰', 'bg-red-800', 1000); }
-            else if (data.type === 'EVENT_START_MINIGAME' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('item'); window.flashScreen('bg-green-600/40'); window.startMiniGameUI(); }
-            else if (data.type === 'EVENT_MINIGAME_RESULT' && (data.targetUid === 'all' || data.targetUid === myUid)) {
-                window.playSound('coin'); const overlay = document.getElementById('minigame-overlay');
-                const resultHtml = `<div class="text-7xl mb-4 animate-bounce">🏆</div><h2 class="text-4xl font-black text-white text-center mb-6">게임 종료!</h2><div class="bg-slate-800 p-8 rounded-3xl text-center border-2 border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.5)] w-full max-w-sm"><div class="text-slate-300 font-bold mb-2 text-lg">최고 득점 우승</div><div class="text-3xl font-black text-yellow-400 mb-3">${data.winnerName}</div><div class="text-xl font-bold text-white mb-6">${data.score} 점</div><div class="mt-4 text-green-400 font-black bg-green-900/40 py-3 rounded-xl border border-green-500">💰 100,000 원 지급 완료!</div></div><button onclick="document.getElementById('minigame-overlay').remove()" class="mt-8 w-full max-w-sm bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition text-xl border border-indigo-400">확인 (닫기)</button>`;
-                if(overlay) { overlay.innerHTML = resultHtml; setTimeout(() => { if(document.getElementById('minigame-overlay')) document.getElementById('minigame-overlay').remove(); }, 6000); } else { showCustomPopup('CEO 게임 결과', `우승: ${data.winnerName} (${data.score}점)\n상금 10만원이 지급되었습니다!`, '🏆', 'bg-indigo-800'); }
-                window.updatePlayerGameUI();
-            }
-            else if (data.type === 'EVENT_CASHBACK' && data.targetUid === myUid) { window.showToast(`유진커머스 2% 캐시백 (+${data.amt.toLocaleString()}원)`, '🛒'); }
-            else if (data.type === 'EVENT_AI_PREDICT' && data.targetUid === myUid) { window.playSound('item'); showCustomPopup('🤖 AI 은밀한 분석', `DS AI랩스 50주 이상 대주주 혜택!\n\n다음 턴에 [${data.stockName}] 주가의\n큰 변동이 예측됩니다.`, '🤖', 'bg-indigo-800'); }
-            else if (data.type === 'EVENT_DIVIDEND' && data.targetUid === myUid) { window.playSound('coin'); showCustomPopup("💰 배당금 입금", data.msg, "💵", "bg-green-700"); }
-            else if (data.type === 'EVENT_DELISTED' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.vibrateDevice([500, 200, 500]); window.flashScreen('bg-red-700/60'); window.playSound('siren'); showCustomPopup("🚨 상장폐지!", `[${data.oldName}] 주가가 300원 미만으로 떨어져 상장폐지되었습니다!\n보유 주식이 모두 휴지조각이 되었습니다.\n(이후 '${data.newName}'(으)로 재상장됩니다)`, "💀", "bg-red-800", 3000); document.getElementById('player-game-container')?.remove(); renderPlayerGame(); }
-            else if (data.type === 'EVENT_WEALTH_TAX_GLOBAL' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.vibrateDevice([300, 100, 300]); window.flashScreen('bg-yellow-500/50'); window.playSound('siren'); showCustomPopup("🚨 부유세 징수!", `정부가 상위권의 세금을 거둬 지원금을 분배했습니다!\n(총 분배액: ${data.taxTotal.toLocaleString()}원)`, "💸", "bg-yellow-700", 3000); document.getElementById('player-game-container')?.remove(); renderPlayerGame(); }
-            else if (data.type === 'EVENT_WEALTH_TAX_INDIV' && data.targetUid === myUid) { setTimeout(() => { if(data.isEco) window.showToast(`♻️ 형진에코 혜택: 부유세 50% 감면! (-${data.tax.toLocaleString()}원)`, '♻️'); }, 3500); }
-            else if (data.type === 'EVENT_ITEM_EFFECT' && data.targetUid === myUid) { window.playSound('item'); showCustomPopup('아이템 사용', data.msg, '✨', 'bg-indigo-600'); }
-            else if (data.type === 'EVENT_SHIELD_ON' && data.targetUid === myUid) { window.playSound('item'); let shieldTarget = roomState.mode === 'team' ? '우리 팀 금고 방어막이' : '방어막이'; showCustomPopup('🛡️ 방어막 가동!', `${shieldTarget} 활성화 되었습니다.\n(현재 방어 횟수: ${data.count}회)`, '🛡️', 'bg-blue-600'); document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); }
-            else if (data.type === 'EVENT_ITEM_FULL' && data.targetUid === myUid) { window.playSound('coin'); showCustomPopup('가방 가득 참!', `인벤토리가 부족하여 아이템 대신 현금 3,000원으로 환전되었습니다!`, '💰', 'bg-slate-700'); }
-            else if (data.type === 'EVENT_HINT' && data.targetUid === myUid) { showCustomPopup('극비 정보', `곧 [${data.stockName}] 주가에\n큰 변동이 있을 예정입니다.`, '🤫', 'bg-yellow-600'); }
-            else if (data.type === 'EVENT_ATTACKED' && data.targetUid === myUid) { handleAttacked(data); }
-            else if (data.type === 'EVENT_ITEM_STOLEN' && data.targetUid === myUid) { window.vibrateDevice([200, 100]); window.flashScreen('bg-purple-500/50'); window.playSound('wrong'); showCustomPopup('✋ 나쁜 손!', `${data.from}님이 당신의 개인 가방에서 [${data.itemName}] 아이템을 훔쳐갔습니다!`, '🥷', 'bg-purple-800'); document.getElementById('player-game-container')?.remove(); renderPlayerGame(); }
-            else if (data.type === 'EVENT_ATTACKED_YUMMY' && data.targetUid === myUid) { window.vibrateDevice([200, 100, 200]); window.flashScreen('bg-purple-500/50'); window.playSound('attacked'); let targetLabel = roomState.mode === 'team' ? '우리 팀 금고의' : '당신의'; showCustomPopup('🚨 적대적 인수 당함!', `${data.from}님이 ${targetLabel} [${data.stockName}] 주식\n지분의 절반(${data.amt}주)을 강제로 인수 합병했습니다!`, '😋', 'bg-purple-800'); }
-            else if (data.type === 'EVENT_YUMMY_SUCCESS' && data.targetUid === myUid) { window.playSound('coin'); window.flashScreen('bg-green-400/30'); showCustomPopup('🎯 인수 성공!', `${data.targetName} [${data.stockName}] 주식\n절반(${data.amt}주)을 강제로 빼앗아왔습니다!`, '😋', 'bg-green-600'); }
-            else if (data.type === 'EVENT_YUMMY_FAIL' && data.targetUid === myUid) { showCustomPopup('❌ 텅~', `아쉽지만 상대방이 해당 주식을 더이상 안 가지고 있습니다.`, '😋', 'bg-slate-700'); }
-            else if (data.type === 'EVENT_DEFENDED' && data.targetUid === myUid) { window.vibrateDevice([100, 100]); showCustomPopup('🛡️ 방어 성공!', `${data.from}님의 치명적인 공격을 방어막으로 막아냈습니다!\n(남은 방어 횟수: ${data.remain}회)`, '🛡️', 'bg-blue-700'); document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); }
-            else if (data.type === 'EVENT_ATTACK_BLOCKED' && data.targetUid === myUid) { window.vibrateDevice([100, 100]); showCustomPopup('❌ 공격 실패', `아뿔싸! ${data.targetName} 방어막을 가동하고 있었습니다!`, '🛡️', 'bg-red-700'); }
-            else if (data.type === 'EVENT_OPENBOOK' && data.targetUid === myUid) { showCustomPopup('📖 오픈북 발동!', '다음 5번의 퀴즈는 오답이 사라지고 정답만 보입니다!', '📖', 'bg-indigo-600'); }
-            else if (data.type === 'EVENT_CIRCUIT_BREAKER' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('siren'); window.flashScreen('bg-red-600/40'); showCustomPopup('🚨 서킷 브레이커', `${data.by}님이 서킷 브레이커를 발동했습니다!\n5초간 모든 거래가 중지됩니다.\n(비스트하트 코인은 거래 가능)`, '🛑', 'bg-red-800'); }
-            else if (data.type === 'EVENT_SPAM_NEWS' && data.targetUid === myUid) {
-                window.vibrateDevice([200, 50, 200]); window.flashScreen('bg-red-600/50'); window.playSound('siren');
-                for(let i=0; i<6; i++) { setTimeout(() => { let div = document.createElement('div'); div.className = 'fixed z-[9999] bg-red-800 border-4 border-red-500 p-4 rounded-xl shadow-2xl flex flex-col items-center justify-center animate-bounce cursor-pointer w-48 text-center'; div.style.left = (5 + Math.random()*60) + '%'; div.style.top = (5 + Math.random()*60) + '%'; div.style.transform = `rotate(${(Math.random()-0.5)*30}deg)`; div.style.pointerEvents = 'auto'; div.innerHTML = `<div class="text-3xl mb-2">📰</div><div class="text-white font-black whitespace-pre-wrap pointer-events-none">${data.news}</div><div class="text-xs text-yellow-300 mt-2 font-bold animate-pulse pointer-events-none">(터치해서 닫기)</div>`; const closeFunc = function(e) { e.preventDefault(); e.stopPropagation(); window.playSound('tick'); this.remove(); }; div.onclick = closeFunc; div.ontouchstart = closeFunc; document.body.appendChild(div); }, i * 150); }
-            }
-        };
+        });
 
-        try { peer = new Peer(); peer.on('open', () => { myConn = peer.connect('stockedu-' + roomCode); myConn.on('open', () => { myConn.send({ type: 'JOIN', uid: myUid, name: n }); }); myConn.on('data', (data) => { bc.onmessage({data: data}); }); }); peer.on('error', (err) => { if(err.type === 'peer-unavailable') { clearTimeout(joinTimeout); showCustomPopup("입장 불가", "존재하지 않는 방입니다.", "❌", "bg-red-600"); window.renderHome(); } }); } catch(e) { }
-        setTimeout(() => { if(!myData) sendPlayerAction({ type: 'JOIN', uid: myUid, name: n }); }, 500);
+        // 내 이벤트 수신
+        window.fbOnChildAdded(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${myUid}`), (snapshot) => {
+            handleEvent(snapshot.val());
+            window.fbRemove(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${myUid}/${snapshot.key}`));
+        });
+
+        // 전체 이벤트 수신
+        window.fbOnChildAdded(window.fbRef(window.fbDb, `rooms/${roomCode}/events_global`), (snapshot) => {
+            handleEvent(snapshot.val());
+        });
+
+        setTimeout(() => { 
+            if(!myData) sendPlayerAction({ type: 'JOIN', uid: myUid, name: n, equippedEmoji: window.myEquippedEmoji || '' }); 
+        }, 500);
     };
 
     const handleAttacked = (data) => {
@@ -1194,7 +1409,8 @@
 
             const renderRankItem = (r, idx) => {
                 const isMe = r.id === myFin.id; const rankColor = idx === 0 ? 'text-yellow-400' : (idx === 1 ? 'text-slate-300' : (idx === 2 ? 'text-orange-400' : 'text-slate-400')); const bgClass = isMe ? 'bg-indigo-900/60 border-indigo-500' : 'bg-slate-800 border-slate-700';
-                return `<div class="flex justify-between items-center p-2 rounded-lg border ${bgClass} shadow-sm text-xs md:text-sm"><div class="flex items-center gap-2 truncate pr-2"><span class="font-black w-4 md:w-5 text-center ${rankColor}">${idx + 1}</span><span class="font-bold text-white truncate ${isMe ? 'text-indigo-300' : ''}">${r.name}</span></div><span class="font-black text-emerald-400 shrink-0">${r.ast.toLocaleString()}원</span></div>`;
+                let emj = r.fin && r.fin.equippedEmoji ? `<span class="mr-1">${r.fin.equippedEmoji}</span>` : '';
+                return `<div class="flex justify-between items-center p-2 rounded-lg border ${bgClass} shadow-sm text-xs md:text-sm"><div class="flex items-center gap-2 truncate pr-2"><span class="font-black w-4 md:w-5 text-center ${rankColor}">${idx + 1}</span><span class="font-bold text-white truncate ${isMe ? 'text-indigo-300' : ''}">${emj}${r.name}</span></div><span class="font-black text-emerald-400 shrink-0">${r.ast.toLocaleString()}원</span></div>`;
             };
 
             let rankHtml = top10.map((r, i) => renderRankItem(r, i)).join('');
@@ -1432,13 +1648,20 @@
 
         let sorted = getRankings();
         const rankHtml = sorted.map((r,i) => {
-            let memberHtml = roomState.mode === 'team' ? `<div class="text-xs text-slate-400 font-normal mt-0.5">${r.members.map(mid => players.find(p=>p.id===mid)?.name).join(', ')}</div>` : '';
-            return `<div class="flex items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md shrink-0"><div class="w-10 h-10 rounded-full ${i===0?'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-[0_0_10px_rgba(234,179,8,0.6)]':(i===1?'bg-gradient-to-br from-slate-300 to-slate-500 text-white':(i===2?'bg-gradient-to-br from-orange-400 to-orange-600 text-white':'bg-slate-700 text-slate-300'))} flex items-center justify-center font-black text-xl mr-4">${i+1}</div><div class="flex-1 min-w-0"><div class="font-black text-xl text-white truncate">${r.name}</div>${memberHtml}</div><div class="text-green-400 font-black text-2xl shrink-0 ml-3">${r.ast.toLocaleString()}원</div></div>`;
+            let memberHtml = '';
+            if (roomState.mode === 'team') {
+                memberHtml = `<div class="text-xs text-slate-400 font-normal mt-0.5">${r.members.map(mid => {
+                    let p = players.find(x=>x.id===mid);
+                    let emj = p && p.equippedEmoji ? p.equippedEmoji : '';
+                    return `${emj}${p ? p.name : ''}`;
+                }).join(', ')}</div>`;
+            }
+            let hostEmj = roomState.mode === 'indiv' && r.fin && r.fin.equippedEmoji ? `<span class="mr-1">${r.fin.equippedEmoji}</span>` : '';
+            return `<div class="flex items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md shrink-0"><div class="w-10 h-10 rounded-full ${i===0?'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-[0_0_10px_rgba(234,179,8,0.6)]':(i===1?'bg-gradient-to-br from-slate-300 to-slate-500 text-white':(i===2?'bg-gradient-to-br from-orange-400 to-orange-600 text-white':'bg-slate-700 text-slate-300'))} flex items-center justify-center font-black text-xl mr-4">${i+1}</div><div class="flex-1 min-w-0"><div class="font-black text-xl text-white truncate">${hostEmj}${r.name}</div>${memberHtml}</div><div class="text-green-400 font-black text-2xl shrink-0 ml-3">${r.ast.toLocaleString()}원</div></div>`;
         }).join('');
         const rankList = document.getElementById('host-rank-list'); if(rankList && rankList.dataset.lastHtml !== rankHtml) { rankList.innerHTML = rankHtml; rankList.dataset.lastHtml = rankHtml; }
 
         const marketHtml = roomState.stocks.map(s=>{
-            // 잘렸던 코드 복구 완료 부분
             const diff = s.history.length > 1 ? s.price - s.history[s.history.length - 2] : 0; 
             const diffClass = diff > 0 ? 'text-red-400' : (diff < 0 ? 'text-blue-400' : 'text-slate-500');
             const diffIcon = diff > 0 ? '▲' : (diff < 0 ? '▼' : '-');
@@ -1455,19 +1678,17 @@
             marketList.innerHTML = marketHtml; 
             marketList.dataset.lastHtml = marketHtml; 
         }
-    }; // updateHostGameUI 끝
+    };
 
-    // 게임 종료 후 호스트 장 마감 화면 (잘려있던 함수 추가)
     window.renderMarketSummary = () => {
         const html = `<div class="flex flex-col items-center justify-center h-full p-4 fade-in">
             <h1 class="text-5xl md:text-6xl font-black text-white mb-6 drop-shadow-lg">주식 장 마감</h1>
-            <p class="text-xl text-slate-300 mb-8 font-bold">모든 거래가 종료되었습니다. 최종 자산을 집계합니다...</p>
+            <p class="text-xl text-slate-300 mb-8 font-bold">모든 거래가 종료되었습니다. 최종 자산을 집계하고 보상(토큰)을 전송했습니다!</p>
             <button onclick="sendPlayerAction({ type: 'HOST_NEXT_PHASE' })" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-xl transition shadow-lg active:scale-95 border-2 border-indigo-400">최종 결과 보기</button>
         </div>`;
         document.getElementById('app').innerHTML = html;
     };
 
-    // 게임 종료 후 랭킹 발표 화면 (잘려있던 함수 추가)
     window.renderEndScreen = () => {
         let sorted = getRankings();
         let rankHtml = sorted.map((r, i) => {
@@ -1491,7 +1712,6 @@
         document.getElementById('app').innerHTML = html;
     };
 
-    // 스크립트가 로드되면 최초 화면 렌더링
     window.renderHome();
 </script>
 </body>
