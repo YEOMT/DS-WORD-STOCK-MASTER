@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>영단어 주식 타이쿤 - 폭풍의 주식시장 (편의성 업데이트)</title>
+    <title>영단어 주식 타이쿤 - 커스텀 단어장 완벽판</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -77,17 +77,36 @@
         if (event.reason && (event.reason.name === 'SecurityError' || event.reason.message.includes('WebSocket'))) event.preventDefault(); 
     });
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = new AudioContext();
+    // Audio Context Autoplay 정책 문제 해결 (Lazy Initialization)
+    let audioCtx = null;
+    const getAudioCtx = () => {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    };
+
+    // 사용자의 첫 상호작용 시 Audio Context 초기화
+    document.body.addEventListener('click', () => getAudioCtx(), { once: true });
+    document.body.addEventListener('touchstart', () => getAudioCtx(), { once: true });
 
     const play8BitTone = (type, freq, duration, vol = 0.1, slideFreq = null) => {
-        if(audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        if(slideFreq) { osc.frequency.exponentialRampToValueAtTime(slideFreq, audioCtx.currentTime + duration); }
-        gainNode.gain.setValueAtTime(vol, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-        osc.connect(gainNode); gainNode.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator(); 
+        const gainNode = ctx.createGain();
+        osc.type = type; 
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        if(slideFreq) { osc.frequency.exponentialRampToValueAtTime(slideFreq, ctx.currentTime + duration); }
+        gainNode.gain.setValueAtTime(vol, ctx.currentTime); 
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        osc.connect(gainNode); 
+        gainNode.connect(ctx.destination);
+        osc.start(); 
+        osc.stop(ctx.currentTime + duration);
     };
 
     const SOUNDS = {
@@ -102,7 +121,14 @@
     SOUNDS.bgm.loop = true; SOUNDS.bgm.volume = 0.3;
 
     window.stopBGM = () => { if (SOUNDS.bgm) { SOUNDS.bgm.pause(); SOUNDS.bgm.currentTime = 0; } };
-    window.playSound = (soundKey) => { if (!soundKey) return; const sound = SOUNDS[soundKey]; if (!sound) return; if (typeof sound === 'function') { sound(); } else { sound.currentTime = 0; sound.play().catch(() => {}); } };
+    window.playSound = (soundKey) => { 
+        if (!soundKey) return; 
+        getAudioCtx(); // 오디오 컨텍스트 활성화 보장
+        const sound = SOUNDS[soundKey]; 
+        if (!sound) return; 
+        if (typeof sound === 'function') { sound(); } 
+        else { sound.currentTime = 0; sound.play().catch(() => {}); } 
+    };
 
     let savedSession = null;
     try { savedSession = JSON.parse(localStorage.getItem('stockedu_session')); } catch(e) {}
@@ -121,17 +147,35 @@
     };
     let players = []; let myData = null; let hostTimerInterval = null;
 
-    const DEFAULT_WORDS = [{word:'joy',meaning:'기쁨'},{word:'travel',meaning:'여행하다'},{word:'vacation',meaning:'방학, 휴가'},{word:'awesome',meaning:'멋진, 기막히게 좋은'},{word:'gondola',meaning:'곤돌라'},{word:'lesson',meaning:'수업, 교훈'},{word:'surf',meaning:'파도타기를 하다'},{word:'aunt',meaning:'이모, 고모, 숙모'},{word:'camping',meaning:'야영, 캠핑'},{word:'trail',meaning:'오솔길, 산길'},{word:'explain',meaning:'설명하다'},{word:'schedule',meaning:'일정, 시간표'},{word:'musical',meaning:'뮤지컬'},{word:'museum',meaning:'박물관'},{word:'amusement park',meaning:'놀이공원'},{word:'join',meaning:'함께하다, 합류하다'},{word:'order',meaning:'주문하다'},{word:'yummy',meaning:'아주 맛있는'},{word:'look forward to',meaning:'~을 기대하다'},{word:'colorful',meaning:'다채로운, 화려한'},{word:'village',meaning:'마을'},{word:'building',meaning:'건물'},{word:'cliff',meaning:'절벽'},{word:'view',meaning:'경관, 전망'},{word:'fantastic',meaning:'환상적인'},{word:'terrace',meaning:'테라스'},{word:'especially',meaning:'특히'},{word:'spend',meaning:'쓰다, 보내다'},{word:'perfect',meaning:'완벽한'},{word:'pay',meaning:'지불하다'},{word:'entrance fee',meaning:'입장료'},{word:'rental',meaning:'대여, 임대'},{word:'explore',meaning:'탐험하다, 답사하다'},{word:'pearl',meaning:'진주'},{word:'narrow',meaning:'좁은'},{word:'souvenir',meaning:'기념품'},{word:'local',meaning:'현지인, 주민'},{word:'famous',meaning:'유명한'},{word:'sunrise',meaning:'일출, 해돋이'},{word:'early',meaning:'일찍'},{word:'different',meaning:'다른'},{word:'attitude',meaning:'태도'},{word:'result',meaning:'결과'},{word:'hold',meaning:'개최하다, 열다'},{word:'contest',meaning:'대회, 경연'},{word:'enter',meaning:'참가하다, 들어가다'},{word:'kid',meaning:'농담하다'},{word:'terrible',meaning:'끔찍한, 형편없는'},{word:'interested',meaning:'관심 있는'},{word:'guess',meaning:'추측하다'},{word:'happen',meaning:'일어나다, 발생하다'},{word:'situation',meaning:'상황'},{word:'mistake',meaning:'실수'},{word:'text',meaning:'문자를 보내다'},{word:'tired',meaning:'피곤한'},{word:'waste',meaning:'낭비하다'},{word:'fault',meaning:'잘못, 책임'},{word:'quit',meaning:'그만두다, 포기하다'},{word:'hopeless',meaning:'절망적인, 가망 없는'},{word:'practice',meaning:'연습하다; 연습'},{word:'cheer up',meaning:'기운을 내다, 격려하다'},{word:'worry',meaning:'걱정하다'},{word:'almost',meaning:'거의'},{word:'prize',meaning:'상'},{word:'finish',meaning:'끝내다, 마치다'},{word:'proud',meaning:'자랑스러운'},{word:'support',meaning:'지지, 응원'},{word:'sick',meaning:'아픈'},{word:'agree',meaning:'동의하다'},{word:'tomorrow',meaning:'내일'}];
-    const INITIAL_STOCKS = [{ id: 's1', name: '🤖 DS AI랩스', price: 10000, history: [10000], vol: 0.40 },{ id: 's2', name: '🪖 경식디펜스', price: 5000, history: [5000], vol: 0.55 },{ id: 's3', name: '🚀 예린스페이스', price: 20000, history: [20000], vol: 0.45 },{ id: 's4', name: '🧬 YG바이오', price: 8000, history: [8000], vol: 0.65 },{ id: 's5', name: '🐳 병하전자', price: 30000, history: [30000], vol: 0.25 },{ id: 's6', name: '🪙 비스트하트 코인', price: 700, history: [700], vol: 0.95 },{ id: 's7', name: '🛒 유진커머스', price: 3000, history: [3000], vol: 0.40 },{ id: 's8', name: '🎮 다솜게임즈', price: 15000, history: [15000], vol: 0.35 },{ id: 's9', name: '♻️ 형진에코', price: 12000, history: [12000], vol: 0.55 },{ id: 's10', name: '💰 경환캐피탈', price: 25000, history: [25000], vol: 0.15 },{ id: 's11', name: '🎤 JH엔터', price: 10000, history: [10000], vol: 0.50 },{ id: 's12', name: '🍩 지원베이커리', price: 5000, history: [5000], vol: 0.20 }];
+    // 기본 단어장
+    const DEFAULT_WORDS = [
+        {word:'joy',meaning:'기쁨'},{word:'travel',meaning:'여행하다'},{word:'vacation',meaning:'방학, 휴가'},{word:'awesome',meaning:'멋진, 기막히게 좋은'},{word:'gondola',meaning:'곤돌라'},{word:'lesson',meaning:'수업, 교훈'},{word:'surf',meaning:'파도타기를 하다'},{word:'aunt',meaning:'이모, 고모, 숙모'},{word:'camping',meaning:'야영, 캠핑'},{word:'trail',meaning:'오솔길, 산길'},{word:'explain',meaning:'설명하다'},{word:'schedule',meaning:'일정, 시간표'},{word:'musical',meaning:'뮤지컬'},{word:'museum',meaning:'박물관'},{word:'amusement park',meaning:'놀이공원'},{word:'join',meaning:'함께하다, 합류하다'},{word:'order',meaning:'주문하다'},{word:'yummy',meaning:'아주 맛있는'},{word:'look forward to',meaning:'~을 기대하다'},{word:'colorful',meaning:'다채로운, 화려한'},{word:'village',meaning:'마을'},{word:'building',meaning:'건물'},{word:'cliff',meaning:'절벽'},{word:'view',meaning:'경관, 전망'},{word:'fantastic',meaning:'환상적인'},{word:'terrace',meaning:'테라스'},{word:'especially',meaning:'특히'},{word:'spend',meaning:'쓰다, 보내다'},{word:'perfect',meaning:'완벽한'},{word:'pay',meaning:'지불하다'},{word:'entrance fee',meaning:'입장료'},{word:'rental',meaning:'대여, 임대'},{word:'explore',meaning:'탐험하다, 답사하다'},{word:'pearl',meaning:'진주'},{word:'narrow',meaning:'좁은'},{word:'souvenir',meaning:'기념품'},{word:'local',meaning:'현지인, 주민'},{word:'famous',meaning:'유명한'},{word:'sunrise',meaning:'일출, 해돋이'},{word:'early',meaning:'일찍'},{word:'different',meaning:'다른'},{word:'attitude',meaning:'태도'},{word:'result',meaning:'결과'},{word:'hold',meaning:'개최하다, 열다'},{word:'contest',meaning:'대회, 경연'},{word:'enter',meaning:'참가하다, 들어가다'},{word:'kid',meaning:'농담하다'},{word:'terrible',meaning:'끔찍한, 형편없는'},{word:'interested',meaning:'관심 있는'},{word:'guess',meaning:'추측하다'},{word:'happen',meaning:'일어나다, 발생하다'},{word:'situation',meaning:'상황'},{word:'mistake',meaning:'실수'},{word:'text',meaning:'문자를 보내다'},{word:'tired',meaning:'피곤한'},{word:'waste',meaning:'낭비하다'},{word:'fault',meaning:'잘못, 책임'},{word:'quit',meaning:'그만두다, 포기하다'},{word:'hopeless',meaning:'절망적인, 가망 없는'},{word:'practice',meaning:'연습하다; 연습'},{word:'cheer up',meaning:'기운을 내다, 격려하다'},{word:'worry',meaning:'걱정하다'},{word:'almost',meaning:'거의'},{word:'prize',meaning:'상'},{word:'finish',meaning:'끝내다, 마치다'},{word:'proud',meaning:'자랑스러운'},{word:'support',meaning:'지지, 응원'},{word:'sick',meaning:'아픈'},{word:'agree',meaning:'동의하다'},{word:'tomorrow',meaning:'내일'}
+    ];
+    
+    const INITIAL_STOCKS = [
+        { id: 's1', name: '🤖 DS AI랩스', price: 10000, history: [10000], vol: 0.40 },
+        { id: 's2', name: '🪖 KS디펜스', price: 5000, history: [5000], vol: 0.55 },
+        { id: 's3', name: '🚀 예린스페이스', price: 20000, history: [20000], vol: 0.45 },
+        { id: 's4', name: '🧬 YG바이오', price: 8000, history: [8000], vol: 0.65 },
+        { id: 's5', name: '🐳 병하전자', price: 30000, history: [30000], vol: 0.25 },
+        { id: 's6', name: '🪙 비스트하트 코인', price: 700, history: [700], vol: 0.95 },
+        { id: 's7', name: '🛒 유진커머스', price: 3000, history: [3000], vol: 0.40 },
+        { id: 's8', name: '🎮 다솜게임즈', price: 15000, history: [15000], vol: 0.35 },
+        { id: 's9', name: '♻️ 형진에코', price: 12000, history: [12000], vol: 0.55 },
+        { id: 's10', name: '💰 경환캐피탈', price: 25000, history: [25000], vol: 0.15 },
+        { id: 's11', name: '🎤 JH엔터', price: 10000, history: [10000], vol: 0.50 },
+        { id: 's12', name: '🍩 지원베이커리', price: 5000, history: [5000], vol: 0.20 }
+    ];
+
     const NEWS_EVENTS = [
         { hintMsg: "🚨 속보: 글로벌 IT 대기업, AI 모델 학습에 예산 투입 예고!", results: [{ resultMsg: "🤖 DS AI랩스, 인프라 투자 독점 수주 성공!<br>[DS AI랩스 상승]", targets: ['s1'], impact: 0.30 }, { resultMsg: "🤖 DS AI랩스, 패드립 봇으로 전락!<br>[DS AI랩스 하락]", targets: ['s1'], impact: -0.30 }, { resultMsg: "🤖 DS AI랩스, 성과 없이 적자폭 확대!<br>[DS AI랩스 소폭 하락]", targets: ['s1'], impact: -0.15 }] },
-        { hintMsg: "💥 속보: 국경 지대 폭발음! 방위산업 주목.", results: [{ resultMsg: "🪖 경식디펜스, 무기 주문 폭주!<br>[경식디펜스 상승]", targets: ['s2'], impact: 0.25 }, { resultMsg: "🪖 경식디펜스, 결함 발견 계약 파기!<br>[경식디펜스 하락]", targets: ['s2'], impact: -0.25 }, { resultMsg: "🪖 경식디펜스, 방어 시스템 오작동!<br>[경식디펜스 소폭 하락]", targets: ['s2'], impact: -0.15 }] },
+        { hintMsg: "💥 속보: 국경 지대 폭발음! 방위산업 주목.", results: [{ resultMsg: "🪖 KS디펜스, 무기 주문 폭주!<br>[KS디펜스 상승]", targets: ['s2'], impact: 0.25 }, { resultMsg: "🪖 KS디펜스, 결함 발견 계약 파기!<br>[KS디펜스 하락]", targets: ['s2'], impact: -0.25 }, { resultMsg: "🪖 KS디펜스, 방어 시스템 오작동!<br>[KS디펜스 소폭 하락]", targets: ['s2'], impact: -0.15 }] },
         { hintMsg: "🌠 속보: 민간 우주 탐사선 발사 D-1!", results: [{ resultMsg: "🚀 예린스페이스, 성공적 궤도 안착!<br>[예린스페이스 떡상]", targets: ['s3'], impact: 0.35 }, { resultMsg: "🚀 쏜 로켓이 운동장에 추락!<br>[스페이스 떡락, 커머스 상승]", targets: ['s3'], impact: -0.30, down_targets: ['s7'], down_impact: 0.15 }, { resultMsg: "🚀 예린스페이스, 점화 불량 연기.<br>[스페이스 하락]", targets: ['s3'], impact: -0.20 }] },
         { hintMsg: "🔌 속보: 대규모 데이터 센터 증설 프로젝트 발표!", results: [{ resultMsg: "🐳 병하전자, 부품 독점 공급 확정!<br>[병하전자 동반 상승]", targets: ['s5'], impact: 0.20 }, { resultMsg: "🐳 병하전자, 서버 콘센트 뽑음!<br>[병하전자 하락]", targets: ['s5'], impact: -0.25 }, { resultMsg: "🐳 병하전자, 자체 칩 개발 호재!<br>[병하전자 소폭 상승]", targets: ['s5'], impact: 0.15 }] },
         { hintMsg: "🚨 속보: 가상화폐 '비스트하트 코인' 찌라시 확산!", results: [{ resultMsg: "🪙 팝스타가 하트 이모티콘과 매수 인증!<br>[비스트하트 코인 폭등]", targets: ['s6'], impact: 0.80 }, { resultMsg: "🪙 개발자가 코인 전량 매도 후 잠적!<br>[비스트하트 코인 폭락]", targets: ['s6'], impact: -0.60 }] },
         { hintMsg: "📦 속보: 전국 물류 노조 총파업 예고!", results: [{ resultMsg: "🛒 유진커머스, 드론 배달 긴급 도입!<br>[유진커머스, 스페이스 동반 상승]", targets: ['s7', 's3'], impact: 0.25 }, { resultMsg: "🛒 유진커머스, 전 직원 연차로 중단!<br>[유진커머스 폭락]", targets: ['s7'], impact: -0.30 }, { resultMsg: "🛒 노사 타결! 배송 정상화.<br>[유진커머스 반등]", targets: ['s7'], impact: 0.20 }] },
         { hintMsg: "🛸 속보: 글로벌 게임쇼 개막! 신작 발표 예정.", results: [{ resultMsg: "🎮 다솜게임즈, 신작 트레일러 환호!<br>[다솜게임즈 급등]", targets: ['s8'], impact: 0.30 }, { resultMsg: "🎮 다솜게임즈, 버그가 밈(Meme)이 됨!<br>[다솜게임즈 상승]", targets: ['s8'], impact: 0.20 }, { resultMsg: "🎮 다솜게임즈, 특별한 호재 없음.<br>[다솜게임즈 소폭 하락]", targets: ['s8'], impact: -0.15 }] },
-        { hintMsg: "❌ 속보: 환경부, 폐기물 무단투기 특별 단속!", results: [{ resultMsg: "♻️ 형진에코, 기적의 소각로 발명!<br>[형진에코 떡상]", targets: ['s9'], impact: 0.35 }, { resultMsg: "♻️ 사장님이 쓰레기 투기하다 적발!<br>[형진에코 나락]", targets: ['s9'], impact: -0.35 }, { resultMsg: "♻️ 형진에코, 무단투기 논란 해명!<br>[형진에코 반등]", targets: ['s9'], impact: 0.20 }] },
+        { hintMsg: "❌ 속보: 환경부, 폐기물 무단투기 특별 단속!", results: [{ resultMsg: "♻️ 형진에코, 기적의 소각로 발명!<br>[형진에코 떡상]", targets: ['s9'], impact: 0.35 }, { resultMsg: "♻️ 사장님이 씽씽이 타고 쓰레기 투기하다 적발!<br>[형진에코 나락]", targets: ['s9'], impact: -0.35 }, { resultMsg: "♻️ 형진에코, 무단투기 논란 해명!<br>[형진에코 반등]", targets: ['s9'], impact: 0.20 }] },
         { hintMsg: "🐀 속보: 한국은행, 기준금리 인상 검토!", results: [{ resultMsg: "💰 경환캐피탈, 파격적인 고금리 예금 출시!<br>[경환캐피탈 상승]", targets: ['s10'], impact: 0.25 }, { resultMsg: "💰 쥐떼가 현금을 파먹어 손실 발생!<br>[경환캐피탈 하락]", targets: ['s10'], impact: -0.25 }, { resultMsg: "💰 금리 인상 보류로 기대감.<br>[경환캐피탈 소폭 상승]", targets: ['s10'], impact: 0.15 }] },
         { hintMsg: "👨‍🌾 속보: 초대형 엔터 그룹, 간판 멤버 탈퇴설!", results: [{ resultMsg: "🎤 JH엔터, 남은 멤버로 빌보드 1위!<br>[JH엔터 떡상]", targets: ['s11'], impact: 0.35 }, { resultMsg: "🎤 그룹 리더가 돌연 귀농 선언!<br>[JH엔터 폭락]", targets: ['s11'], impact: -0.40 }, { resultMsg: "🎤 탈퇴설은 노이즈 마케팅 판명!<br>[JH엔터 상승]", targets: ['s11'], impact: 0.20 }] },
         { hintMsg: "🤮 속보: 식품 업계, 파격적인 '괴식' 트렌드 예고!", results: [{ resultMsg: "🍩 민트초코 떡볶이맛 대출시 매출 폭발!<br>[지원베이커리 상승]", targets: ['s12'], impact: 0.25 }, { resultMsg: "🍩 소비자 복통 호소! 소화제 폭증.<br>[베이커리 폭락, 바이오 상승]", targets: ['s12'], impact: -0.30, down_targets: ['s4'], down_impact: 0.20 }, { resultMsg: "🍩 기괴한 맛에 선넘었다며 불매운동.<br>[지원베이커리 하락]", targets: ['s12'], impact: -0.15 }] },
@@ -151,8 +195,8 @@
         { id: 'i3', name: '🤫 회장님의 조언', tier: 'A', type: 'active_self', desc: '다음 변동할 주식 종목 하나 스포일러.' },
         { id: 'i19', name: '📉 하락장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 시 다음 폭락 확정 종목 스포일러.' },
         { id: 'i20', name: '📈 상승장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 시 다음 폭등 확정 종목 스포일러.' },
-        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'A', type: 'active_global', desc: '자신을 제외한 모두 6초간 행동 불가.' },
-        { id: 'i17', name: '🛑 서킷 브레이커', tier: 'A', type: 'active_global', desc: '모든 거래 10초간 정지.' },
+        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'S', type: 'active_global', desc: '자신을 제외한 모두 3초간 행동 불가.' },
+        { id: 'i17', name: '🛑 서킷 브레이커', tier: 'S', type: 'active_global', desc: '모든 거래 4초간 정지.' },
         { id: 'i11', name: '📖 오픈북 찬스', tier: 'A', type: 'active_self', desc: '다음 5번의 퀴즈에서 오답 제거.' },
         { id: 'i12', name: '📰 가짜 뉴스 살포', tier: 'A', type: 'active_player', desc: '상대방 화면에 가짜 뉴스 도배.' },
         { id: 'i13', name: '💸 작전 세력', tier: 'A', type: 'active_stock', desc: '선택 주식 즉시 폭등 및 요동.' },
@@ -165,8 +209,15 @@
     window.vibrateDevice = (pattern) => { if (navigator.vibrate) navigator.vibrate(pattern); };
 
     window.flashScreen = (bgClass) => {
-        const overlay = document.createElement('div'); overlay.className = `flash-overlay ${bgClass}`; document.body.appendChild(overlay);
-        void overlay.offsetWidth; overlay.style.opacity = '1'; setTimeout(() => { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 400); }, 100);
+        const overlay = document.createElement('div'); 
+        overlay.className = `flash-overlay ${bgClass}`; 
+        document.body.appendChild(overlay);
+        void overlay.offsetWidth; 
+        overlay.style.opacity = '1'; 
+        setTimeout(() => { 
+            overlay.style.opacity = '0'; 
+            setTimeout(() => overlay.remove(), 400); 
+        }, 100);
     };
 
     window.showToast = (msg, icon) => {
@@ -220,20 +271,27 @@
     };
 
     window.showCustomPopup = (title, desc, icon, bgClass, freezeMs = 0) => {
-        const container = document.getElementById('modal-container'); const popupId = 'popup-' + Date.now() + Math.floor(Math.random()*1000);
+        const container = document.getElementById('modal-container'); 
+        const popupId = 'popup-' + Date.now() + Math.floor(Math.random()*1000);
         if(freezeMs === 0) container.innerHTML = ''; 
         let isFrozen = freezeMs > 0;
         let closeBtnHtml = isFrozen ? `<div id="popup-timer-${popupId}" class="text-white font-bold mt-6 bg-black/30 py-3 px-6 rounded-xl border border-white/20 shadow-inner">${(freezeMs/1000).toFixed(1)}초 후 닫기 가능</div>` : `<button onclick="document.getElementById('${popupId}').remove()" class="mt-6 bg-black/40 hover:bg-black/60 text-white font-bold py-3 px-6 rounded-xl w-full border border-white/30 transition shadow-lg active:scale-95">확인</button>`;
         const html = `<div id="${popupId}" class="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm fade-in px-4" ${!isFrozen ? `onclick="this.remove()"` : ''}><div class="${bgClass} p-8 rounded-3xl text-center text-white border-2 border-white/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-sm transform popup-anim flex flex-col items-center" onclick="event.stopPropagation()"><div class="text-7xl mb-4 drop-shadow-xl animate-bounce">${icon}</div><h3 class="font-black text-2xl mb-3 drop-shadow-md text-white">${title}</h3><p class="font-bold text-lg text-white/90 leading-tight whitespace-pre-line">${desc}</p>${closeBtnHtml}</div></div>`;
         container.insertAdjacentHTML('beforeend', html);
         if (isFrozen) {
-            window.vibrateDevice([100, 100, 100]); let remaining = freezeMs;
+            window.vibrateDevice([100, 100, 100]); 
+            let remaining = freezeMs;
             const inter = setInterval(() => {
-                remaining -= 100; const timerEl = document.getElementById(`popup-timer-${popupId}`);
+                remaining -= 100; 
+                const timerEl = document.getElementById(`popup-timer-${popupId}`);
                 if(timerEl) timerEl.innerText = `${(remaining/1000).toFixed(1)}초 후 닫기 가능`;
                 if (remaining <= 0) {
-                    clearInterval(inter); const pEl = document.getElementById(popupId);
-                    if(pEl) { pEl.setAttribute('onclick', 'this.remove()'); if(timerEl) timerEl.outerHTML = `<button onclick="document.getElementById('${popupId}').remove()" class="mt-6 bg-black/40 hover:bg-black/60 text-white font-bold py-3 px-6 rounded-xl w-full border border-white/30 fade-in transition shadow-lg active:scale-95">확인 (닫기)</button>`; }
+                    clearInterval(inter); 
+                    const pEl = document.getElementById(popupId);
+                    if(pEl) { 
+                        pEl.setAttribute('onclick', 'this.remove()'); 
+                        if(timerEl) timerEl.outerHTML = `<button onclick="document.getElementById('${popupId}').remove()" class="mt-6 bg-black/40 hover:bg-black/60 text-white font-bold py-3 px-6 rounded-xl w-full border border-white/30 fade-in transition shadow-lg active:scale-95">확인 (닫기)</button>`; 
+                    }
                 }
             }, 100);
         }
@@ -322,24 +380,49 @@
         if(currentRole !== 'host') return;
         if (broadcastTimeout) clearTimeout(broadcastTimeout);
         broadcastTimeout = setTimeout(() => {
+            // 동기화 부하 최적화: 채팅 배열 과도하게 커지는 것 방지
+            if (roomState.chats.length > 50) roomState.chats = roomState.chats.slice(-50);
+            
             const payload = { type: 'SYNC', roomState, players };
             Object.values(hostConns).forEach(conn => { if(conn && conn.open) conn.send(payload); }); if(bc) bc.postMessage(payload);
-            if(roomState.status === 'lobby') updateLobbyPlayers();
-            else if(roomState.status === 'playing') { if(!document.getElementById('host-game-container')) window.renderHostGameSkeleton(); window.updateHostGameUI(); window.updateChatUI(); handleChatVisibility(); }
+            
+            if(roomState.status === 'lobby') {
+                updateLobbyPlayers();
+            }
+            else if(roomState.status === 'playing') { 
+                if(!document.getElementById('host-game-container')) window.renderHostGameSkeleton(); 
+                window.updateHostGameUI(); 
+                window.updateChatUI(); 
+                handleChatVisibility(); 
+            }
             else if(roomState.status === 'ended') { 
                 if(roomState.endPhase === 'summary') {
-                    if(document.getElementById('app').innerHTML === '') renderMarketSummary(); 
-                } else renderEndScreen(); 
+                    if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('주식 장 마감')) renderMarketSummary(); 
+                } else {
+                    if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('최종 시상식')) renderEndScreen(); 
+                }
                 handleChatVisibility(); 
             }
         }, 100); 
     };
 
-    window.shuffleTeams = () => { if(currentRole !== 'host') return; sendPlayerAction({ type: 'HOST_SHUFFLE_TEAMS' }); };
-    window.playAgain = () => { if(currentRole !== 'host') return; sendPlayerAction({ type: 'HOST_PLAY_AGAIN' }); };
+    window.shuffleTeams = () => { 
+        if(currentRole !== 'host') return; 
+        if(confirm("팀을 무작위로 다시 섞으시겠습니까?")) {
+            sendPlayerAction({ type: 'HOST_SHUFFLE_TEAMS' }); 
+        }
+    };
+    
+    window.playAgain = () => { 
+        if(currentRole !== 'host') return; 
+        if(confirm("현재 접속한 학생 그대로 게임을 다시 시작하시겠습니까? (모든 자산과 주식이 초기화됩니다)")) {
+            sendPlayerAction({ type: 'HOST_PLAY_AGAIN' }); 
+        }
+    };
 
     const handlePlayerAction = (data, conn = null) => {
         let p = players.find(x => x.id === data.uid);
+        
         if (data.type === 'JOIN') {
             if (!p) {
                 if(conn) hostConns[data.uid] = conn;
@@ -348,7 +431,8 @@
                     let smallestTeam = roomState.teams.slice().sort((a,b) => a.members.length - b.members.length)[0];
                     if (smallestTeam) { p.teamId = smallestTeam.id; smallestTeam.members.push(p.id); }
                 }
-                players.push(p); roomState.chats.push({ uid: 'system', name: '시스템', text: `${data.name}님이 입장하셨습니다.` }); 
+                players.push(p); 
+                roomState.chats.push({ uid: 'system', name: '시스템', text: `${data.name}님이 입장하셨습니다.` }); 
             } else { 
                 if(conn) hostConns[data.uid] = conn; 
                 p.name = data.name; 
@@ -362,7 +446,10 @@
         let fin = getFin(p.id);
         if (!fin.avgPrice) fin.avgPrice = {}; if (fin.shieldCount === undefined) fin.shieldCount = 0; if (fin.delistedCost === undefined) fin.delistedCost = 0;
 
-        if (data.type === 'CHAT') { roomState.chats.push({ uid: data.uid, name: p.name, text: data.text }); if(roomState.chats.length > 100) roomState.chats.shift(); }
+        if (data.type === 'CHAT') { 
+            roomState.chats.push({ uid: data.uid, name: p.name, text: data.text }); 
+            if(roomState.chats.length > 50) roomState.chats.shift(); 
+        }
         else if (data.type === 'EMOJI') {
             if (currentRole === 'host') {
                 const el = document.createElement('div'); el.className = 'host-emoji font-black'; el.style.left = Math.random() * 80 + 10 + '%';
@@ -384,19 +471,32 @@
             }
         }
         else if (data.type === 'HOST_PLAY_AGAIN') {
-            roomState.status = 'lobby'; roomState.endPhase = null; roomState.phase = 'wait';
-            roomState.turnCount = 0; roomState.s11EventTriggered = false; roomState.miniGameActive = false;
-            roomState.miniGameScores = {}; roomState.circuitBreakerUntil = 0; roomState.circuitBreakerBy = '';
-            roomState.extraTimeTriggered = false; roomState.stocks = JSON.parse(JSON.stringify(INITIAL_STOCKS));
-            roomState.news = "개장 준비 중... 30초 후 첫 뉴스가 발표됩니다."; roomState.availableEvents = Array.from({length: NEWS_EVENTS.length}, (_, i) => i);
-            roomState.chats = [{ uid: 'system', name: '시스템', text: `🔄 호스트가 게임을 초기화하고 다시 대기실로 이동했습니다!` }];
-            roomState.teams.forEach(t => { t.cash = 5000; t.portfolio = {}; t.avgPrice = {}; t.shieldCount = 0; t.delistedCost = 0; });
+            roomState.status = 'lobby'; 
+            roomState.endPhase = null; 
+            roomState.phase = 'wait';
+            roomState.turnCount = 0; 
+            roomState.s11EventTriggered = false; 
+            roomState.miniGameActive = false;
+            roomState.miniGameScores = {}; 
+            roomState.circuitBreakerUntil = 0; 
+            roomState.circuitBreakerBy = '';
+            roomState.extraTimeTriggered = false; 
+            roomState.stocks = JSON.parse(JSON.stringify(INITIAL_STOCKS));
+            roomState.news = "개장 준비 중... 30초 후 첫 뉴스가 발표됩니다."; 
+            roomState.availableEvents = Array.from({length: NEWS_EVENTS.length}, (_, i) => i);
+            roomState.chats = [{ uid: 'system', name: '시스템', text: `🔄 게임을 초기화하고 대기실로 이동했습니다!` }];
+            
+            roomState.teams.forEach(t => { 
+                t.cash = 5000; t.portfolio = {}; t.avgPrice = {}; t.shieldCount = 0; t.delistedCost = 0; 
+            });
             players.forEach(player => {
                 player.cash = 5000; player.portfolio = {}; player.avgPrice = {}; player.items = []; player.dropBonus = 0;
                 player.tradeCount = 0; player.correctAnswers = 0; player.wrongAnswers = 0; player.earnedFromQuiz = 0;
                 player.buyAmount = 0; player.itemUseCount = 0; player.openBookCount = 0; player.blindedUntil = 0;
                 player.shieldCount = 0; player.delistedCost = 0;
             });
+            Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'SYNC', roomState, players}); });
+            if(bc) bc.postMessage({type: 'SYNC', roomState, players});
         }
         else if (data.type === 'MINIGAME_SUBMIT') {
             if(!roomState.miniGameScores) roomState.miniGameScores = {};
@@ -447,6 +547,7 @@
         } 
         else if (data.type === 'QUIZ_WRONG') { p.wrongAnswers = (p.wrongAnswers || 0) + 1; }
         else if (data.type === 'QUIZ_CORRECT') {
+            if(!fin.id) return;
             let isBottomBuff = false; let sortedRank = getRankings(); let playerRank = sortedRank.findIndex(x => x.id === fin.id);
             if (sortedRank.length > 2 && sortedRank.length - playerRank <= Math.ceil(sortedRank.length / 2)) isBottomBuff = true;
 
@@ -454,11 +555,12 @@
             if (r < 0.1) earned = 5000; else if (r < 0.3) earned = 3000; else if (r < 0.6) earned = 2000;
             if (isBottomBuff) earned *= 2;
 
-            let bakeryBonus = 0; if (fin.portfolio['s12'] > 0) { bakeryBonus = fin.portfolio['s12'] * 500; earned += bakeryBonus; }
+            let bakeryBonus = 0; if (fin.portfolio && fin.portfolio['s12'] > 0) { bakeryBonus = Math.min(fin.portfolio['s12'], 100) * 500; earned += bakeryBonus; }
             fin.cash += earned; p.correctAnswers++; p.earnedFromQuiz = (p.earnedFromQuiz || 0) + earned;
             if (data.usedOpenBook && p.openBookCount > 0) p.openBookCount--;
             
-            let dasomShares = fin.portfolio['s8'] || 0; let dasomBonus = Math.min(0.10, dasomShares * 0.005); let sClassBonus = Math.min(0.05, dasomShares * 0.002);
+            let dasomShares = (fin.portfolio && fin.portfolio['s8']) ? fin.portfolio['s8'] : 0; 
+            let dasomBonus = Math.min(0.10, dasomShares * 0.005); let sClassBonus = Math.min(0.05, dasomShares * 0.002);
             let dropRate = 0.10 + (p.dropBonus || 0) + dasomBonus; if (isBottomBuff) dropRate += 0.50;
 
             let acquiredItem = null;
@@ -534,16 +636,21 @@
                 if(target) { const fakeNewsList = ["🚨 [속보] DS AI랩스 상장폐지 절차 돌입!", "🚨 [속보] 예린스페이스, 로켓 폭발로 파산 위기!", "🚨 [단독] 당신의 폰이 해킹당하고 있습니다!"]; const fakeNews = fakeNewsList[Math.floor(Math.random() * fakeNewsList.length)]; sendToPlayer(target.id, { type: 'EVENT_SPAM_NEWS', from: p.name, news: fakeNews }, hostConns[target.id] || null); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님의 화면에 가짜 뉴스를 도배했습니다!` }, conn); }
             } else if (data.itemId === 'i13') { 
                 let s = roomState.stocks.find(x => x.id === data.targetId);
-                if(s) { s.prePumpPrice = s.price; s.price = Math.min(Math.floor(s.price * 1.50), 200000); s.pumpedUntil = Date.now() + 10000; roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); }
+                if(s) { 
+                    s.prePumpPrice = s.price; 
+                    s.price = Math.min(Math.floor(s.price * 1.50), 200000); 
+                    s.pumpedUntil = Date.now() + 10000; 
+                    roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); 
+                }
             } else if (data.itemId === 'i5') { 
                 const fTime = Date.now() + 3000; players.forEach(x => { if(getFin(x.id).id !== fin.id) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
                 let msgText = roomState.mode === 'team' ? '우리 팀을 제외한 모두가' : '자신을 제외한 모두가'; roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! ${msgText} 3초간 얼어붙습니다.` }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `적들을 3초간 얼려버렸습니다!` }, conn);
             } else if (data.itemId === 'i7') { 
                 let oldAmt = fin.portfolio[data.targetId] || 0; let oldCost = oldAmt * (fin.avgPrice[data.targetId] || 0); fin.portfolio[data.targetId] = oldAmt + 1; fin.avgPrice[data.targetId] = oldCost / fin.portfolio[data.targetId]; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `선택한 주식 1주를 금고에 공짜로 얻었습니다!` }, conn);
             } else if (data.itemId === 'i17') {
-                roomState.circuitBreakerUntil = Date.now() + 5000; roomState.circuitBreakerBy = p.name; roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 ${p.name}님이 서킷 브레이커를 발동했습니다! 모든 거래가 5초간 정지됩니다.` });
+                roomState.circuitBreakerUntil = Date.now() + 4000; roomState.circuitBreakerBy = p.name; roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 ${p.name}님이 서킷 브레이커를 발동했습니다! 모든 거래가 4초간 정지됩니다.` });
                 Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_CIRCUIT_BREAKER', by: p.name, targetUid: 'all'}); }); if(bc) bc.postMessage({type: 'EVENT_CIRCUIT_BREAKER', by: p.name, targetUid: 'all'});
-                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '서킷 브레이커를 발동했습니다! 5초간 거래가 정지됩니다.' }, conn);
+                sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '서킷 브레이커를 발동했습니다! 4초간 거래가 정지됩니다.' }, conn);
             }
         }
         else if (data.type === 'HOST_NEXT_PHASE') { roomState.endPhase = 'rankings'; }
@@ -552,7 +659,7 @@
             let topLimit = roomState.mode === 'team' ? Math.max(1, Math.floor(sortedRanks.length/2)) : Math.min(5, sortedRanks.length);
             for(let i=0; i<topLimit; i++) {
                 let f = sortedRanks[i].fin; let tax = Math.floor(f.cash * 0.20);
-                let isEco = f.portfolio['s9'] > 0; if (isEco) { tax = Math.floor(tax * 0.5); }
+                let isEco = f.portfolio && f.portfolio['s9'] > 0; if (isEco) { tax = Math.floor(tax * 0.5); }
                 if (tax > 0) {
                     f.cash -= tax; taxTotal += tax; let targetMembers = roomState.mode === 'team' ? f.members : [f.id];
                     targetMembers.forEach(mid => sendToPlayer(mid, { type: 'EVENT_WEALTH_TAX_INDIV', tax: tax, isEco: isEco }, hostConns[mid] || null));
@@ -567,6 +674,10 @@
         hostBroadcast();
     };
 
+    const sendPlayerAction = (action) => {
+        if (currentRole === 'host') handlePlayerAction(action, null); else if (myConn && myConn.open) myConn.send(action); else if (bc) bc.postMessage({ type: 'PLAYER_ACTION', action });
+    };
+
     window.setMode = (mode) => {
         document.getElementById('btn-mode-indiv').className = mode === 'indiv' ? 'flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold border-2 border-indigo-400' : 'flex-1 py-3 bg-slate-700 text-slate-400 rounded-xl font-bold border-2 border-transparent';
         document.getElementById('btn-mode-team').className = mode === 'team' ? 'flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold border-2 border-indigo-400' : 'flex-1 py-3 bg-slate-700 text-slate-400 rounded-xl font-bold border-2 border-transparent';
@@ -578,7 +689,7 @@
         if(peer) peer.destroy(); peer = null; if(bc) bc.close(); bc = null;
         if(hostTimerInterval) clearInterval(hostTimerInterval); if(playerTimerInterval) clearInterval(playerTimerInterval);
         lastChatLength = 0; handleChatVisibility();
-        if(audioCtx.state === 'suspended') { document.body.addEventListener('click', () => { if(audioCtx.state === 'suspended') audioCtx.resume(); }, { once: true }); }
+        
         let rejoinHtml = '';
         if (savedSession) { rejoinHtml = `<div class="mt-4 bg-slate-800/80 p-4 rounded-xl border border-indigo-500/50 text-center shadow-lg w-full"><p class="text-sm text-slate-300 mb-2">이전 접속 기록이 발견되었습니다.</p><button onclick="window.rejoinRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition active:scale-95">방 [${savedSession.roomCode}] - ${savedSession.name} 님으로 재접속</button><button onclick="window.clearSession()" class="mt-3 text-xs text-slate-500 hover:text-slate-300 underline">접속 기록 초기화</button></div>`; }
         
@@ -607,21 +718,78 @@
                     <input type="hidden" id="game-mode-val" value="indiv">
                     <div class="mb-4"><label class="block text-sm font-bold mb-2">게임 모드</label><div class="flex gap-2"><button id="btn-mode-indiv" onclick="window.setMode('indiv')" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold border-2 border-indigo-400">개인전</button><button id="btn-mode-team" onclick="window.setMode('team')" class="flex-1 py-3 bg-slate-700 text-slate-400 rounded-xl font-bold border-2 border-transparent">팀전 (공유 금고)</button></div></div>
                     <div id="team-setup" class="hidden mb-4 bg-slate-800 p-4 rounded-xl border border-slate-600"><label class="block text-sm font-bold mb-2 text-yellow-400">만들 팀 개수 <span class="text-xs text-slate-300 font-normal">(접속 시 인원에 맞게 자동 배정됩니다)</span></label><select id="team-count" class="w-full bg-slate-900 border border-slate-500 rounded p-3 font-bold text-center text-white"><option value="2">2 팀</option><option value="3">3 팀</option><option value="4" selected>4 팀</option><option value="5">5 팀</option><option value="6">6 팀</option></select></div>
+                    
+                    <div class="mb-4 bg-slate-800 p-4 rounded-xl border border-slate-600">
+                        <label class="block text-sm font-bold mb-2 text-yellow-400">커스텀 단어장 (선택)</label>
+                        <p class="text-[10px] text-slate-400 mb-2 leading-tight">단어와 뜻이 구분된 txt 파일을 업로드하세요.<br>(구분자: 쉼표, 탭, 하이픈 등 가능)</p>
+                        <input type="file" id="custom-word-file" accept=".txt" class="w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+                    </div>
+
                     <label class="block text-sm font-bold mb-2 mt-6">총 게임 시간 (분)</label><input type="number" id="game-duration" value="15" min="3" max="60" class="w-full bg-slate-800 border border-slate-600 rounded p-3 mb-6 font-bold text-center text-white">
                     <button onclick="window.createRoom()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition">방 생성하기</button>
             </div></div>`;
     };
 
     window.createRoom = async () => { 
+        document.getElementById('app').innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-4"><div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div><div class="text-xl font-bold animate-pulse">방 개설 준비 중...</div></div>`;
+        
+        const fileInput = document.getElementById('custom-word-file');
+        let wordsToUse = [];
+
+        if (fileInput && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                lines.forEach(line => {
+                    if (!line.trim()) return;
+                    let delimiter = line.includes('\t') ? '\t' : (line.includes(',') ? ',' : (line.includes('-') ? '-' : null));
+                    if (delimiter) {
+                        let parts = line.split(delimiter);
+                        let w = parts[0].trim();
+                        let m = parts.slice(1).join(delimiter).trim(); 
+                        if (w && m) wordsToUse.push({ word: w, meaning: m });
+                    }
+                });
+                if (wordsToUse.length < 10) {
+                    alert("커스텀 단어가 10개 미만이거나 형식이 맞지 않습니다. 기본 단어장으로 시작합니다.");
+                    wordsToUse = DEFAULT_WORDS;
+                } else {
+                    alert(`총 ${wordsToUse.length}개의 커스텀 단어가 성공적으로 로드되었습니다!`);
+                }
+                finalizeCreateRoom(wordsToUse);
+            };
+            reader.readAsText(file);
+        } else {
+            finalizeCreateRoom(DEFAULT_WORDS);
+        }
+    };
+
+    const finalizeCreateRoom = (finalWords) => {
         roomCode = Math.floor(1000 + Math.random() * 9000).toString();
-        const durationMs = parseInt(document.getElementById('game-duration').value || 15) * 60 * 1000;
-        const mode = document.getElementById('game-mode-val').value; const tCount = parseInt(document.getElementById('team-count').value);
+        const durationMs = parseInt(document.getElementById('game-duration')?.value || 15) * 60 * 1000;
+        const mode = document.getElementById('game-mode-val')?.value || 'indiv'; 
+        const tCount = parseInt(document.getElementById('team-count')?.value || 4);
+        
         let teamsArr = [];
-        if (mode === 'team') { let shuffledNames = [...TEAM_NAMES].sort(() => 0.5 - Math.random()); for(let i=0; i<tCount; i++) { teamsArr.push({ id: 't'+(i+1), name: shuffledNames[i], cash: 5000, portfolio: {}, avgPrice: {}, shieldCount: 0, delistedCost: 0, members: [] }); } }
+        if (mode === 'team') { 
+            let shuffledNames = [...TEAM_NAMES].sort(() => 0.5 - Math.random()); 
+            for(let i=0; i<tCount; i++) { teamsArr.push({ id: 't'+(i+1), name: shuffledNames[i], cash: 5000, portfolio: {}, avgPrice: {}, shieldCount: 0, delistedCost: 0, members: [] }); } 
+        }
+        
         currentRole = 'host';
-        roomState = { status: 'lobby', mode: mode, teams: teamsArr, endPhase: null, words: DEFAULT_WORDS, stocks: JSON.parse(JSON.stringify(INITIAL_STOCKS)), news: "개장 준비 중... 30초 후 첫 뉴스가 발표됩니다.", phase: 'wait', nextPhaseTime: 0, nextEventIndex: 0, nextOutcomeIndex: 0, availableEvents: Array.from({length: NEWS_EVENTS.length}, (_, i) => i), durationMs: durationMs, endTime: 0, chats: [], circuitBreakerUntil: 0, circuitBreakerBy: '', extraTimeTriggered: false, turnCount: 0, s11EventTriggered: false, miniGameActive: false, miniGameScores: {}, miniGameEndTime: 0 };
+        roomState = { 
+            status: 'lobby', mode: mode, teams: teamsArr, endPhase: null, words: finalWords, stocks: JSON.parse(JSON.stringify(INITIAL_STOCKS)), 
+            news: "개장 준비 중... 30초 후 첫 뉴스가 발표됩니다.", phase: 'wait', nextPhaseTime: 0, nextEventIndex: 0, nextOutcomeIndex: 0, 
+            availableEvents: Array.from({length: NEWS_EVENTS.length}, (_, i) => i), durationMs: durationMs, endTime: 0, chats: [], 
+            circuitBreakerUntil: 0, circuitBreakerBy: '', extraTimeTriggered: false, turnCount: 0, s11EventTriggered: false, 
+            miniGameActive: false, miniGameScores: {}, miniGameEndTime: 0 
+        };
         players = []; hostConns = {}; lastChatLength = 0;
+        
         document.getElementById('app').innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-4"><div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div><div class="text-xl font-bold animate-pulse">방 개설 중...</div></div>`;
+        
         let hostReady = false; const initLobby = () => { if(hostReady) return; hostReady = true; renderLobby(); };
         bc = new BroadcastChannel('stockedu_' + roomCode); bc.onmessage = (e) => { if (e.data.type === 'PLAYER_ACTION') handlePlayerAction(e.data.action, null); };
         try { peer = new Peer('stockedu-' + roomCode); peer.on('open', () => initLobby()); peer.on('error', () => initLobby()); peer.on('connection', (conn) => { conn.on('data', (d) => handlePlayerAction(d, conn)); }); } catch(e) { initLobby(); }
@@ -824,9 +992,13 @@
                         stock.price = np;
                     });
 
-                    if (downCount > roomState.stocks.length / 2) {
-                        let s2 = roomState.stocks.find(x=>x.id==='s2'); s2.price = Math.floor(s2.price * 1.15); s2.history[s2.history.length - 1] = s2.price; 
-                        roomState.chats.push({ uid: 'system', name: '시스템', text: `🛡️ [경식디펜스] 시장 전반 하락세 감지! 방어 기제로 나홀로 15% 기습 상승!` });
+                    if (downCount >= 6) { 
+                        let s2 = roomState.stocks.find(x=>x.id==='s2');
+                        let prevPrice = s2.history.length > 1 ? s2.history[s2.history.length - 2] : s2.price;
+                        if (s2.price <= prevPrice) { s2.price = Math.floor(prevPrice * 1.15); } 
+                        else { s2.price = Math.floor(s2.price * 1.15); }
+                        s2.history[s2.history.length - 1] = s2.price; 
+                        roomState.chats.push({ uid: 'system', name: '시스템', text: `🛡️ [KS디펜스] 하락장 방어 기제 발동! 안전자산 쏠림 현상으로 나홀로 15% 기습 상승!` });
                     }
 
                     roomState.turnCount = (roomState.turnCount || 0) + 1;
@@ -839,8 +1011,8 @@
                     let finsToDiv = roomState.mode === 'team' ? roomState.teams : players;
                     finsToDiv.forEach(f => {
                         let divMsg = []; let totalDiv = 0;
-                        if (f.portfolio['s10'] > 0) { let amt = Math.floor(f.portfolio['s10'] * roomState.stocks.find(s=>s.id==='s10').price * 0.05); amt = Math.min(amt, 500000); f.cash += amt; totalDiv += amt; divMsg.push(`[경환캐피탈] 이자 ${amt.toLocaleString()}원${amt===500000?'(최대)':''}`); }
-                        if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(amt, 300000); f.cash += amt; totalDiv += amt; divMsg.push(`[병하전자] 배당금 ${amt.toLocaleString()}원${amt===300000?'(최대)':''}`); }
+                        if (f.portfolio['s10'] > 0) { let amt = Math.floor(f.portfolio['s10'] * roomState.stocks.find(s=>s.id==='s10').price * 0.05); amt = Math.min(amt, 500000); f.cash += amt; totalDiv += amt; divMsg.push(`[경환캐피탈] 예금 이자 ${amt.toLocaleString()}원${amt===500000?' (최대 한도)':''}`); }
+                        if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(amt, 300000); f.cash += amt; totalDiv += amt; divMsg.push(`[병하전자] 고정 배당금 ${amt.toLocaleString()}원${amt===300000?' (최대 한도)':''}`); }
                         if (totalDiv > 0) {
                             if (roomState.mode === 'team') { f.members.forEach(mid => sendToPlayer(mid, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[mid] || null)); } 
                             else { sendToPlayer(f.id, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[f.id] || null); }
@@ -954,7 +1126,7 @@
                 isWaitingForResult = false; window.vibrateDevice(50); window.flashScreen('bg-green-400/30'); window.playSound('coin');
                 let extraMsg = data.bakeryBonus > 0 ? `\n(지원베이커리 혜택 +${data.bakeryBonus.toLocaleString()}원 포함!)` : ''; if(data.dasomBonus > 0) extraMsg += `\n(다솜게임즈 효과로 아이템 등장 확률 증가!)`;
                 if (data.item) { window.playSound('item'); extraMsg += `\n\n🎁 [${data.item.tier}급] ${data.item.name} 획득!`; }
-                showCustomPopup("정답!", `총 ${data.earned.toLocaleString()}원을 확보했습니다.${extraMsg}`, "⭕", "bg-green-600"); quizCurrentQuestion = null; document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame();
+                showCustomPopup("정답!", `총 ${data.earned.toLocaleString()}원을 확보했습니다.${extraMsg}`, "⭕", "bg-green-600"); quizCurrentQuestion = null; document.getElementById('player-game-container')?.remove(); renderPlayerGame();
             }
             else if (data.type === 'EVENT_EXTRA_TIME' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('siren'); window.flashScreen('bg-red-600/50'); showCustomPopup('🚨 시간 종료! 라스트 댄스 10초!', '00:00 시간 마감! 마지막 시장 대폭풍 변동이 적용되었습니다!', '⏰', 'bg-red-800', 1000); }
             else if (data.type === 'EVENT_START_MINIGAME' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('item'); window.flashScreen('bg-green-600/40'); window.startMiniGameUI(); }
@@ -998,7 +1170,7 @@
         if (data.attackType === 'steal') { window.vibrateDevice([100, 100, 100]); window.flashScreen('bg-purple-500/50'); let targetLabel = roomState.mode === 'team' ? '우리 팀 금고 현금' : '당신의 현금'; showCustomPopup('💸 소매치기 당함!', `${data.from}님이 ${targetLabel} 지분의 무려 50%인\n${data.amt.toLocaleString()}원을 강탈해갔습니다!`, '🥷', 'bg-purple-700'); }
     };
 
-    window.switchTab = (tab) => { currentTab = tab; window.vibrateDevice(10); document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); };
+    window.switchTab = (tab) => { currentTab = tab; window.vibrateDevice(10); document.getElementById('player-game-container')?.remove(); renderPlayerGame(); };
 
     let isUpdatingUI = false;
     window.updatePlayerGameUI = () => {
@@ -1173,14 +1345,28 @@
     window.submitAnswer = (ans) => {
         if (!quizCurrentQuestion || !myData || isWaitingForResult) return;
         if (isFrozen()) { window.vibrateDevice([50, 50]); return showCustomPopup("행동 불가", "얼어있어서 불가능합니다!", "🥶", "bg-blue-800"); }
+        
         if (ans === quizCurrentQuestion.correct) {
             isWaitingForResult = true; 
-            setTimeout(() => { if(isWaitingForResult) { isWaitingForResult = false; const el = document.getElementById('player-game-container'); if (el) el.outerHTML = ''; renderPlayerGame(); } }, 600); 
+            let safeReset = setTimeout(() => { 
+                if(isWaitingForResult) { 
+                    isWaitingForResult = false; 
+                    quizCurrentQuestion = null; 
+                    document.getElementById('player-game-container')?.remove(); 
+                    renderPlayerGame(); 
+                } 
+            }, 5000); 
+
             sendPlayerAction({ type: 'QUIZ_CORRECT', uid: myUid, usedOpenBook: (myData && myData.openBookCount > 0) });
-            document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); 
+            document.getElementById('player-game-container')?.remove(); 
+            renderPlayerGame(); 
         } else { 
-            window.vibrateDevice([50, 50, 50]); window.flashScreen('bg-red-500/40'); window.playSound('wrong'); showCustomPopup("오답!", "틀렸습니다. 2초간 행동 불가!", "❌", "bg-red-700", 2000); 
-            sendPlayerAction({ type: 'QUIZ_WRONG', uid: myUid }); quizCurrentQuestion = null; document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); 
+            window.vibrateDevice([50, 50, 50]); window.flashScreen('bg-red-500/40'); window.playSound('wrong'); 
+            showCustomPopup("오답!", "틀렸습니다. 2초간 행동 불가!", "❌", "bg-red-700", 2000); 
+            sendPlayerAction({ type: 'QUIZ_WRONG', uid: myUid }); 
+            quizCurrentQuestion = null; 
+            document.getElementById('player-game-container')?.remove(); 
+            renderPlayerGame(); 
         }
     };
 
@@ -1207,7 +1393,11 @@
             <div class="flex justify-between items-center mb-4 bg-glass p-4 rounded-xl shadow-lg border-2 border-indigo-500/30">
                 <div><div class="text-slate-400 text-sm font-bold">ROOM CODE</div><div class="text-4xl font-black tracking-widest text-white">${roomCode}</div></div>
                 <div class="text-center"><div class="text-slate-400 text-sm font-bold">REMAINING</div><div class="text-5xl text-red-400 font-mono font-black" id="h-timer">--:--</div></div>
-                <div class="flex gap-2"><button onclick="window.triggerMiniGame()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg">🎮 CEO 게임</button><button onclick="window.triggerWealthTax()" class="bg-yellow-600 hover:bg-yellow-500 px-4 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg">💸 부유세 징수</button><button onclick="window.endGameRoom()" class="bg-red-600 hover:bg-red-500 px-6 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg"><i class="fas fa-power-off mr-2"></i>조기종료</button></div>
+                <div class="flex gap-2">
+                    <button onclick="window.triggerMiniGame()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg">🎮 CEO 게임</button>
+                    <button onclick="window.triggerWealthTax()" class="bg-yellow-600 hover:bg-yellow-500 px-4 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg">💸 부유세 징수</button>
+                    <button onclick="window.endGameRoom()" class="bg-red-600 hover:bg-red-500 px-6 py-4 rounded-2xl font-black text-white shadow-lg active:scale-95 transition flex items-center text-lg"><i class="fas fa-power-off mr-2"></i>조기종료</button>
+                </div>
             </div>
             <div id="host-news-box" class="bg-gradient-to-r from-yellow-900/60 to-yellow-800/40 border-yellow-500 border-l-8 p-6 rounded-2xl mb-5 shadow-2xl flex items-center gap-6 transition-colors duration-500"><div id="host-news-icon" class="text-6xl animate-pulse drop-shadow-lg">🔮</div><div><div id="host-news-title" class="text-yellow-300 font-black mb-2 tracking-widest text-lg">상태</div><div id="host-news-content" class="text-3xl font-black text-white leading-snug whitespace-pre-line drop-shadow-md">대기 중...</div></div></div>
             <div class="flex gap-5 flex-grow min-h-0">
@@ -1248,90 +1438,60 @@
         const rankList = document.getElementById('host-rank-list'); if(rankList && rankList.dataset.lastHtml !== rankHtml) { rankList.innerHTML = rankHtml; rankList.dataset.lastHtml = rankHtml; }
 
         const marketHtml = roomState.stocks.map(s=>{
-            const diff = s.history.length>1 ? s.price - s.history[s.history.length-2] : 0; const diffClass = diff>0 ? 'text-red-400' : (diff<0 ? 'text-blue-400' : 'text-slate-500');
-            return `<div class="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md shrink-0"><span class="font-black text-lg text-white truncate">${s.name}</span><div class="text-right"><span class="font-black text-2xl text-white ${diff!==0?'price-update':''}">${s.price.toLocaleString()}원</span><span class="text-lg font-black ml-3 ${diffClass}">${diff>0?'▲':(diff<0?'▼':'-')} ${Math.abs(diff).toLocaleString()}</span></div></div>`}).join('');
-        const marketList = document.getElementById('host-market-list'); if(marketList && marketList.dataset.lastHtml !== marketHtml) { marketList.innerHTML = marketHtml; marketList.dataset.lastHtml = marketHtml; }
-    };
-
-    const renderMarketSummary = () => {
-        let stocksCalc = roomState.stocks.map(s => { const initial = s.history.length > 0 ? s.history[0] : s.price; const diff = s.price - initial; const pct = initial > 0 ? (diff / initial) * 100 : 0; return { ...s, initial, diff, pct }; }).sort((a,b) => b.pct - a.pct);
-        const topGainer = stocksCalc[0]; const topLoser = stocksCalc[stocksCalc.length - 1]; const isHost = currentRole === 'host';
-
-        const html = `
-            <div class="flex flex-col w-full h-full p-4 md:p-8 max-w-4xl mx-auto fade-in pt-10">
-                <div class="text-center mb-8"><h1 class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 drop-shadow-md mb-2">주식 장 마감</h1><p class="text-slate-300 font-bold text-lg">최종 종목 변동 요약 (그래프)</p></div>
-                <div class="flex gap-4 mb-8"><div class="flex-1 bg-red-900/40 border border-red-500 rounded-2xl p-5 text-center shadow-lg transform hover:scale-105 transition"><div class="text-3xl mb-2">🚀 최고 상승주</div><div class="font-black text-2xl text-white mb-1">${topGainer.name}</div><div class="text-red-400 font-black text-3xl">+${topGainer.pct.toFixed(1)}%</div></div><div class="flex-1 bg-blue-900/40 border border-blue-500 rounded-2xl p-5 text-center shadow-lg transform hover:scale-105 transition"><div class="text-3xl mb-2">📉 최악 하락주</div><div class="font-black text-2xl text-white mb-1">${topLoser.name}</div><div class="text-blue-400 font-black text-3xl">${topLoser.pct.toFixed(1)}%</div></div></div>
-                <div class="bg-glass rounded-3xl p-6 border border-slate-600 shadow-xl flex-grow overflow-y-auto custom-scrollbar">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${stocksCalc.map(s => { const isPos = s.pct >= 0; const sparkline = generateSparkline(s.history, isPos);
-                            return `<div class="flex flex-col p-4 bg-slate-800/80 rounded-2xl border border-slate-700 shadow-md"><div class="flex justify-between items-end mb-3 border-b border-slate-700 pb-2"><span class="font-black text-white text-lg">${s.name}</span><div class="text-right"><div class="font-black ${isPos ? 'text-red-400' : 'text-blue-400'} text-xl">${isPos ? '+' : ''}${s.pct.toFixed(1)}%</div><div class="text-xs font-bold text-slate-400">${s.initial.toLocaleString()} ➔ ${s.price.toLocaleString()}</div></div></div><div class="w-full relative mt-1 bg-slate-900/50 rounded-lg p-1 overflow-hidden">${sparkline}</div></div>`;
-                        }).join('')}
-                    </div>
+            // 잘렸던 코드 복구 완료 부분
+            const diff = s.history.length > 1 ? s.price - s.history[s.history.length - 2] : 0; 
+            const diffClass = diff > 0 ? 'text-red-400' : (diff < 0 ? 'text-blue-400' : 'text-slate-500');
+            const diffIcon = diff > 0 ? '▲' : (diff < 0 ? '▼' : '-');
+            return `<div class="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md shrink-0">
+                <span class="font-black text-lg text-white truncate">${s.name}</span>
+                <div class="text-right">
+                    <div class="text-xl font-black text-white">${s.price.toLocaleString()}원</div>
+                    <div class="text-sm font-bold ${diffClass}">${diffIcon} ${Math.abs(diff).toLocaleString()}</div>
                 </div>
-                <div class="mt-8 flex justify-center">${isHost ? `<button onclick="window.hostGoRankings()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xl py-5 px-12 rounded-2xl shadow-[0_0_30px_rgba(79,70,229,0.5)] active:scale-95 transition">최종 시상식 발표하기 <i class="fas fa-arrow-right ml-2"></i></button>` : `<div class="text-slate-400 font-bold text-lg animate-pulse">호스트가 시상식을 준비하고 있습니다... 🏆</div>`}</div>
             </div>`;
+        }).join('');
+        const marketList = document.getElementById('host-market-list'); 
+        if(marketList && marketList.dataset.lastHtml !== marketHtml) { 
+            marketList.innerHTML = marketHtml; 
+            marketList.dataset.lastHtml = marketHtml; 
+        }
+    }; // updateHostGameUI 끝
+
+    // 게임 종료 후 호스트 장 마감 화면 (잘려있던 함수 추가)
+    window.renderMarketSummary = () => {
+        const html = `<div class="flex flex-col items-center justify-center h-full p-4 fade-in">
+            <h1 class="text-5xl md:text-6xl font-black text-white mb-6 drop-shadow-lg">주식 장 마감</h1>
+            <p class="text-xl text-slate-300 mb-8 font-bold">모든 거래가 종료되었습니다. 최종 자산을 집계합니다...</p>
+            <button onclick="sendPlayerAction({ type: 'HOST_NEXT_PHASE' })" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-xl transition shadow-lg active:scale-95 border-2 border-indigo-400">최종 결과 보기</button>
+        </div>`;
         document.getElementById('app').innerHTML = html;
     };
 
-    window.hostGoRankings = () => { if(currentRole !== 'host') return; roomState.endPhase = 'rankings'; if(myConn) sendPlayerAction({type: 'HOST_NEXT_PHASE'}); hostBroadcast(); };
-
-    const renderEndScreen = () => {
-        let sortedRanks = getRankings(); if(sortedRanks.length===0) return document.getElementById('app').innerHTML=`<div class="m-auto"><button onclick="window.renderHome()" class="bg-blue-600 px-4 py-2 rounded font-bold">돌아가기</button></div>`;
-        let p1 = sortedRanks[0] || {name: '없음', ast: 0}; let p2 = sortedRanks[1] || {name: '없음', ast: 0}; let p3 = sortedRanks[2] || {name: '없음', ast: 0};
-        const getMemberStr = (r) => { if (roomState.mode === 'team' && r && r.members) { return `<div class="text-xs text-slate-200 mt-1 font-bold break-all opacity-80">${r.members.map(mid => players.find(p=>p.id===mid)?.name).join(', ')}</div>`; } return ''; };
-
-        let awards = []; const activePlayers = players.filter(p => p.tradeCount > 0 || p.correctAnswers > 0);
-        if (roomState.mode === 'team') {
-            const byQuiz = [...activePlayers].sort((a,b)=>(b.earnedFromQuiz||0)-(a.earnedFromQuiz||0))[0]; if(byQuiz && byQuiz.earnedFromQuiz > 0) awards.push({ t:"🎩 시드머니 캐리", d:"팀 퀴즈 수익 기여 1위", n:byQuiz.name, v:byQuiz.earnedFromQuiz.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500" });
-            const byBuy = [...activePlayers].sort((a,b)=>(b.buyAmount||0)-(a.buyAmount||0))[0]; if(byBuy && byBuy.buyAmount > 0) awards.push({ t:"💸 풀매수 장인", d:"팀 매수 금액 1위", n:byBuy.name, v:byBuy.buyAmount.toLocaleString()+'원', color: "text-red-400", bg: "border-red-500" });
-            const qK = [...activePlayers].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500" });
-            const itemK = [...activePlayers].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500" });
-            const tK = [...activePlayers].sort((a,b)=>(b.tradeCount||0)-(a.tradeCount||0))[0]; if(tK && tK.tradeCount>0) awards.push({ t:"⚡ 야수의 심장", d:"최다 거래 (단타 장인)", n:tK.name, v:tK.tradeCount+'회', color: "text-orange-400", bg: "border-orange-500" });
-            const wK = [...activePlayers].sort((a,b)=>(b.wrongAnswers||0)-(a.wrongAnswers||0))[0]; if(wK && wK.wrongAnswers>0) awards.push({ t:"🤡 찍기 장인", d:"오답 횟수 1위", n:wK.name, v:wK.wrongAnswers+'번', color: "text-slate-400", bg: "border-slate-500" });
-        } else {
-            let sortedIndiv = players.map(p=>{
-                let stockVal = 0; let totalCost = p.delistedCost || 0; 
-                Object.entries(p.portfolio||{}).forEach(([k,v])=>{ const s=roomState.stocks.find(x=>x.id===k); if(s && v>0) { stockVal += s.price * v; totalCost += (p.avgPrice && p.avgPrice[k] ? p.avgPrice[k] : s.price) * v; } });
-                let returnRate = totalCost > 0 ? ((stockVal - totalCost) / totalCost) * 100 : 0; return {...p, returnRate, stockVal}; 
-            });
-            const activeIndiv = sortedIndiv.filter(p => p.tradeCount > 0); const byReturn = [...activeIndiv].sort((a,b) => b.returnRate - a.returnRate);
-            const maxStockP = [...sortedIndiv].sort((a,b) => b.stockVal - a.stockVal)[0];
-            if(maxStockP && maxStockP.stockVal > 0) awards.push({ t:"🎩 대송 버핏", d:"주식 자산 1위", n:maxStockP.name, v:maxStockP.stockVal.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500" });
-            if(byReturn.length > 0 && byReturn[0].returnRate > 0) awards.push({ t:"🚀 존버왕", d:"투자 수익률 1위", n:byReturn[0].name, v:`+${byReturn[0].returnRate.toFixed(1)}%`, color: "text-red-400", bg: "border-red-500" });
-            const qK = [...sortedIndiv].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500" });
-            const itemK = [...sortedIndiv].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500" });
-            const tK = [...sortedIndiv].sort((a,b)=>(b.tradeCount||0)-(a.tradeCount||0))[0]; if(tK && tK.tradeCount>0) awards.push({ t:"⚡ 야수의 심장", d:"최다 거래 (단타 장인)", n:tK.name, v:tK.tradeCount+'회', color: "text-orange-400", bg: "border-orange-500" });
-            if(byReturn.length > 0 && byReturn[byReturn.length-1].returnRate < 0) { const clown = byReturn[byReturn.length-1]; awards.push({ t:"🤡 올해의 광대", d:"투자 손실률 1위", n:clown.name, v:`${clown.returnRate.toFixed(1)}%`, color: "text-slate-400", bg: "border-slate-500" }); }
-        }
-
-        document.getElementById('app').innerHTML = `
-            <div class="p-4 max-w-6xl mx-auto w-full fade-in pt-6 h-full flex flex-col">
-                <div class="text-6xl text-center mb-1 animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">🎊</div><h1 class="text-4xl md:text-5xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-8 drop-shadow-md">최종 시상식</h1>
-                <div class="flex flex-col lg:flex-row gap-8 flex-grow overflow-hidden">
-                    <div class="flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2 pb-4">
-                        <div class="flex items-end justify-center gap-3 h-56 md:h-64 mt-4">
-                            <div class="flex flex-col items-center w-[30%] animate-[slideUp_0.8s_ease-out_0.3s_both]"><div class="text-xl md:text-2xl font-black truncate w-full text-center text-slate-200 px-1 drop-shadow-md">${p2.name}</div>${getMemberStr(p2)}<div class="w-full bg-gradient-to-b from-slate-300 to-slate-600 rounded-t-2xl h-28 md:h-32 flex flex-col items-center justify-start pt-3 shadow-[0_0_25px_rgba(148,163,184,0.4)] border-t border-slate-100 mt-2"><span class="text-4xl drop-shadow-md">🥈</span><span class="font-black text-slate-900 text-sm mt-2 px-1 break-all">${(p2.ast||0).toLocaleString()}원</span></div></div>
-                            <div class="flex flex-col items-center w-[35%] animate-[slideUp_0.8s_ease-out_0.9s_both] z-10"><div class="text-4xl animate-pulse mb-1 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]">👑</div><div class="text-2xl md:text-3xl font-black truncate w-full text-center text-yellow-400 px-1 drop-shadow-md">${p1.name}</div>${getMemberStr(p1)}<div class="w-full bg-gradient-to-b from-yellow-300 to-yellow-600 rounded-t-2xl h-40 md:h-48 flex flex-col items-center justify-start pt-4 shadow-[0_0_35px_rgba(234,179,8,0.6)] border-t border-yellow-100 mt-2"><span class="text-5xl drop-shadow-md">🥇</span><span class="font-black text-yellow-900 text-base mt-2 px-1 break-all">${(p1.ast||0).toLocaleString()}원</span></div></div>
-                            <div class="flex flex-col items-center w-[30%] animate-[slideUp_0.8s_ease-out_0s_both]"><div class="text-xl md:text-2xl font-black truncate w-full text-center text-orange-300 px-1 drop-shadow-md">${p3.name}</div>${getMemberStr(p3)}<div class="w-full bg-gradient-to-b from-orange-400 to-orange-700 rounded-t-2xl h-20 md:h-24 flex flex-col items-center justify-start pt-2 shadow-[0_0_20px_rgba(249,115,22,0.4)] border-t border-orange-200 mt-2"><span class="text-3xl drop-shadow-md">🥉</span><span class="font-black text-orange-900 text-xs mt-1 px-1 break-all">${(p3.ast||0).toLocaleString()}원</span></div></div>
-                        </div>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            ${awards.map(a=>`<div class="bg-glass p-4 rounded-2xl text-center border ${a.bg} shadow-xl transform transition hover:scale-105"><div class="text-base font-black ${a.color} mb-1 drop-shadow-sm">${a.t}</div><div class="text-[11px] font-bold text-slate-300 mb-2 truncate">${a.d}</div><div class="text-lg font-black text-white bg-slate-800/80 rounded-xl py-2 mb-2 truncate px-2 border border-slate-600 shadow-inner">${a.n}</div><div class="text-emerald-400 font-black text-sm drop-shadow-md">${a.v}</div></div>`).join('')}
-                        </div>
-                    </div>
-                    <div class="lg:w-1/3 w-full bg-glass p-6 rounded-3xl border border-slate-600 shadow-2xl flex flex-col max-h-[500px] lg:max-h-full">
-                        <h3 class="font-black text-2xl mb-4 text-white flex items-center border-b border-slate-600 pb-3"><i class="fas fa-list-ol mr-3 text-blue-400"></i>전체 랭킹</h3>
-                        <div class="flex-grow overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-2">
-                            ${sortedRanks.map((r,i)=>`<div class="flex justify-between items-center px-4 py-3 ${i===0?'bg-gradient-to-r from-yellow-900/60 to-slate-800 border border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]':'bg-slate-800 border border-slate-700 shadow-md'} rounded-xl text-base"><span class="font-black flex items-center truncate flex-1"><span class="w-8 text-center mr-3 ${i===0?'text-yellow-400 text-2xl':(i===1?'text-slate-300 text-xl':(i===2?'text-orange-400 text-xl':'text-slate-500 text-lg'))}">${i+1}</span> <span class="truncate text-white">${r.name}</span></span><span class="text-green-400 font-black shrink-0 text-xl ml-2">${r.ast.toLocaleString()}원</span></div>`).join('')}
-                        </div>
-                    </div>
-                </div>
-                <div class="w-full mt-6 flex flex-col sm:flex-row gap-4 shrink-0">
-                    ${currentRole === 'host' ? `<button onclick="window.playAgain()" class="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 border border-green-500 py-5 rounded-2xl font-black text-xl shadow-2xl active:scale-95 transition text-white"><i class="fas fa-redo-alt mr-2"></i>같은 멤버로 다시 시작</button>` : ''}
-                    <button onclick="window.clearSession()" class="flex-1 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-500 py-5 rounded-2xl font-black text-xl shadow-2xl active:scale-95 transition text-white"><i class="fas fa-home mr-2"></i>처음 화면으로 (초기화)</button>
-                </div>
+    // 게임 종료 후 랭킹 발표 화면 (잘려있던 함수 추가)
+    window.renderEndScreen = () => {
+        let sorted = getRankings();
+        let rankHtml = sorted.map((r, i) => {
+            let badge = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : `<span class="text-xl text-slate-400">${i+1}위</span>`));
+            let isMe = (r.id === myUid) || (myData && r.id === myData.teamId);
+            return `<div class="flex justify-between items-center ${isMe ? 'bg-indigo-900/60 border-indigo-400' : 'bg-slate-800 border-slate-600'} p-4 md:p-5 rounded-2xl border-2 mb-3 w-full max-w-2xl shadow-lg transition-transform hover:scale-[1.02]">
+                <div class="flex items-center"><span class="text-3xl md:text-4xl mr-4 md:mr-6 w-12 text-center">${badge}</span><span class="text-xl md:text-2xl font-black text-white">${r.name}</span></div>
+                <span class="text-2xl md:text-3xl font-black text-green-400">${r.ast.toLocaleString()}원</span>
             </div>`;
+        }).join('');
+        
+        const html = `<div class="flex flex-col items-center pt-10 pb-24 h-full overflow-y-auto w-full px-4 custom-scrollbar fade-in">
+            <h1 class="text-5xl md:text-6xl font-black text-yellow-400 mb-4 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]">최종 시상식</h1>
+            <p class="text-lg text-slate-300 mb-8 font-bold">치열한 주식 시장의 최종 부자는?</p>
+            ${rankHtml}
+            <div class="mt-8 flex gap-4">
+                ${currentRole === 'host' ? `<button onclick="window.playAgain()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-xl font-black shadow-lg transition active:scale-95 text-lg"><i class="fas fa-redo mr-2"></i>같은 멤버로 다시하기</button>` : ''}
+                <button onclick="window.renderHome()" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-4 rounded-xl font-bold shadow-lg transition active:scale-95 text-lg">메인으로 나가기</button>
+            </div>
+        </div>`;
+        document.getElementById('app').innerHTML = html;
     };
 
+    // 스크립트가 로드되면 최초 화면 렌더링
     window.renderHome();
 </script>
 </body>
