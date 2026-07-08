@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>영단어 주식 타이쿤 - 폭풍의 주식시장 (최적화 완벽판)</title>
+    <title>영단어 주식 타이쿤 - 폭풍의 주식시장 (편의성 업데이트)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -121,33 +121,7 @@
     };
     let players = []; let myData = null; let hostTimerInterval = null;
 
-    const DEFAULT_WORDS = [ {word: 'foreign', meaning: '외국의'}, {word: 'origin', meaning: '기원, 유래'}, {word: 'borrow', meaning: '빌리다, 차용하다'},
-        {word: 'culture', meaning: '문화'}, {word: 'language', meaning: '언어'}, {word: 'press', meaning: '누르다'},
-        {word: 'massage', meaning: '마사지, 안마'}, {word: 'British', meaning: '영국의, 영국인'}, {word: 'trader', meaning: '상인, 무역업자'},
-        {word: 'experience', meaning: '경험하다'}, {word: 'introduce', meaning: '도입하다, 소개하다'}, {word: 'century', meaning: '세기, 100년'},
-        {word: 'meaning', meaning: '의미, 뜻'}, {word: 'present', meaning: '현재의'}, {word: 'enter', meaning: '들어가다, 들어오다'},
-        {word: 'shortly', meaning: '곧, 얼마 안 있어'}, {word: 'soap', meaning: '비누'}, {word: 'machine', meaning: '기계'},
-        {word: 'human', meaning: '인간, 사람'}, {word: 'design', meaning: '설계하다, 고안하다'}, {word: 'produce', meaning: '생산하다, 만들다'},
-        {word: 'factory', meaning: '공장'}, {word: 'originally', meaning: '원래, 본래'}, {word: 'suggest', meaning: '제안하다'},
-        {word: 'slave', meaning: '노예'}, {word: 'decide', meaning: '결정하다, 결심하다'}, {word: 'fiction', meaning: '소설'},
-        {word: 'originate from', meaning: '~에서 유래하다'}, {word: 'creation', meaning: '창조'}, {word: 'myth', meaning: '신화'},
-        {word: 'storm', meaning: '폭풍'}, {word: 'anger', meaning: '화나게 하다'}, {word: 'cause', meaning: '일으키다, 원인이 되다'},
-        {word: 'flood', meaning: '홍수'}, {word: 'contact', meaning: '접촉, 연락'}, {word: 'civilization', meaning: '문명'},
-        {word: 'explorer', meaning: '탐험가'}, {word: 'pick up', meaning: '(어깨너머로) 배우다, 알게 되다'}, {word: 'invent', meaning: '발명하다'},
-        {word: 'slice', meaning: '얇은 조각'}, {word: 'habit', meaning: '습관'}, {word: 'spend', meaning: '쓰다, 소비하다'},
-        {word: 'survey', meaning: '설문 조사'}, {word: 'result', meaning: '결과'}, {word: 'majority', meaning: '대다수, 과반수'},
-        {word: 'manage', meaning: '관리하다'}, {word: 'effort', meaning: '노력'}, {word: 'allowance', meaning: '용돈'},
-        {word: 'have difficulty ~ing', meaning: '~하는 데 어려움을 겪다'}, {word: 'save', meaning: '저축하다, 모으다'}, {word: 'lastly', meaning: '마지막으로'},
-        {word: 'weekly', meaning: '매주의'}, {word: 'solve', meaning: '해결하다, 풀다'}, {word: 'problem', meaning: '문제'},
-        {word: 'diary', meaning: '일기, 수첩'}, {word: 'use up', meaning: '다 써버리다'}, {word: 'beginning', meaning: '시작, 초반'},
-        {word: 'tip', meaning: '조언, 유용한 정보'}, {word: 'carry around', meaning: '가지고 다니다'}, {word: 'divide', meaning: '나누다, 쪼개다'},
-        {word: 'balance', meaning: '잔고, 잔액'}, {word: 'for example', meaning: '예를 들어'}, {word: 'concert', meaning: '콘서트, 공연'},
-        {word: 'tight', meaning: '빠듯한, 여유가 없는'}, {word: 'budget', meaning: '예산, 비용'}, {word: 'rule', meaning: '규칙'},
-        {word: 'donate', meaning: '기부하다'}, {word: 'remaining', meaning: '남은, 남아있는'}, {word: 'charity', meaning: '자선 단체'},
-        {word: 'follow', meaning: '따르다, 지키다'}, {word: 'on sale', meaning: '할인 판매 중인'}, {word: 'although', meaning: '비록 ~일지라도'},
-        {word: 'already', meaning: '이미, 벌써'}, {word: 'case', meaning: '경우, 상황'}, {word: 'advice', meaning: '조언, 충고'},
-        {word: 'item', meaning: '물품, 품목'}, {word: 'even if', meaning: '비록 ~일지라도'}, {word: 'on the spot', meaning: '즉석에서, 그 자리에서'},
-        {word: 'worry', meaning: '걱정, 고민거리'}, {word: 'smart', meaning: '현명한, 똑똑한'}];
+    const DEFAULT_WORDS = [{word:'joy',meaning:'기쁨'},{word:'travel',meaning:'여행하다'},{word:'vacation',meaning:'방학, 휴가'},{word:'awesome',meaning:'멋진, 기막히게 좋은'},{word:'gondola',meaning:'곤돌라'},{word:'lesson',meaning:'수업, 교훈'},{word:'surf',meaning:'파도타기를 하다'},{word:'aunt',meaning:'이모, 고모, 숙모'},{word:'camping',meaning:'야영, 캠핑'},{word:'trail',meaning:'오솔길, 산길'},{word:'explain',meaning:'설명하다'},{word:'schedule',meaning:'일정, 시간표'},{word:'musical',meaning:'뮤지컬'},{word:'museum',meaning:'박물관'},{word:'amusement park',meaning:'놀이공원'},{word:'join',meaning:'함께하다, 합류하다'},{word:'order',meaning:'주문하다'},{word:'yummy',meaning:'아주 맛있는'},{word:'look forward to',meaning:'~을 기대하다'},{word:'colorful',meaning:'다채로운, 화려한'},{word:'village',meaning:'마을'},{word:'building',meaning:'건물'},{word:'cliff',meaning:'절벽'},{word:'view',meaning:'경관, 전망'},{word:'fantastic',meaning:'환상적인'},{word:'terrace',meaning:'테라스'},{word:'especially',meaning:'특히'},{word:'spend',meaning:'쓰다, 보내다'},{word:'perfect',meaning:'완벽한'},{word:'pay',meaning:'지불하다'},{word:'entrance fee',meaning:'입장료'},{word:'rental',meaning:'대여, 임대'},{word:'explore',meaning:'탐험하다, 답사하다'},{word:'pearl',meaning:'진주'},{word:'narrow',meaning:'좁은'},{word:'souvenir',meaning:'기념품'},{word:'local',meaning:'현지인, 주민'},{word:'famous',meaning:'유명한'},{word:'sunrise',meaning:'일출, 해돋이'},{word:'early',meaning:'일찍'},{word:'different',meaning:'다른'},{word:'attitude',meaning:'태도'},{word:'result',meaning:'결과'},{word:'hold',meaning:'개최하다, 열다'},{word:'contest',meaning:'대회, 경연'},{word:'enter',meaning:'참가하다, 들어가다'},{word:'kid',meaning:'농담하다'},{word:'terrible',meaning:'끔찍한, 형편없는'},{word:'interested',meaning:'관심 있는'},{word:'guess',meaning:'추측하다'},{word:'happen',meaning:'일어나다, 발생하다'},{word:'situation',meaning:'상황'},{word:'mistake',meaning:'실수'},{word:'text',meaning:'문자를 보내다'},{word:'tired',meaning:'피곤한'},{word:'waste',meaning:'낭비하다'},{word:'fault',meaning:'잘못, 책임'},{word:'quit',meaning:'그만두다, 포기하다'},{word:'hopeless',meaning:'절망적인, 가망 없는'},{word:'practice',meaning:'연습하다; 연습'},{word:'cheer up',meaning:'기운을 내다, 격려하다'},{word:'worry',meaning:'걱정하다'},{word:'almost',meaning:'거의'},{word:'prize',meaning:'상'},{word:'finish',meaning:'끝내다, 마치다'},{word:'proud',meaning:'자랑스러운'},{word:'support',meaning:'지지, 응원'},{word:'sick',meaning:'아픈'},{word:'agree',meaning:'동의하다'},{word:'tomorrow',meaning:'내일'}];
     const INITIAL_STOCKS = [{ id: 's1', name: '🤖 DS AI랩스', price: 10000, history: [10000], vol: 0.40 },{ id: 's2', name: '🪖 경식디펜스', price: 5000, history: [5000], vol: 0.55 },{ id: 's3', name: '🚀 예린스페이스', price: 20000, history: [20000], vol: 0.45 },{ id: 's4', name: '🧬 YG바이오', price: 8000, history: [8000], vol: 0.65 },{ id: 's5', name: '🐳 병하전자', price: 30000, history: [30000], vol: 0.25 },{ id: 's6', name: '🪙 비스트하트 코인', price: 700, history: [700], vol: 0.95 },{ id: 's7', name: '🛒 유진커머스', price: 3000, history: [3000], vol: 0.40 },{ id: 's8', name: '🎮 다솜게임즈', price: 15000, history: [15000], vol: 0.35 },{ id: 's9', name: '♻️ 형진에코', price: 12000, history: [12000], vol: 0.55 },{ id: 's10', name: '💰 경환캐피탈', price: 25000, history: [25000], vol: 0.15 },{ id: 's11', name: '🎤 JH엔터', price: 10000, history: [10000], vol: 0.50 },{ id: 's12', name: '🍩 지원베이커리', price: 5000, history: [5000], vol: 0.20 }];
     const NEWS_EVENTS = [
         { hintMsg: "🚨 속보: 글로벌 IT 대기업, AI 모델 학습에 예산 투입 예고!", results: [{ resultMsg: "🤖 DS AI랩스, 인프라 투자 독점 수주 성공!<br>[DS AI랩스 상승]", targets: ['s1'], impact: 0.30 }, { resultMsg: "🤖 DS AI랩스, 패드립 봇으로 전락!<br>[DS AI랩스 하락]", targets: ['s1'], impact: -0.30 }, { resultMsg: "🤖 DS AI랩스, 성과 없이 적자폭 확대!<br>[DS AI랩스 소폭 하락]", targets: ['s1'], impact: -0.15 }] },
@@ -177,8 +151,8 @@
         { id: 'i3', name: '🤫 회장님의 조언', tier: 'A', type: 'active_self', desc: '다음 변동할 주식 종목 하나 스포일러.' },
         { id: 'i19', name: '📉 하락장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 시 다음 폭락 확정 종목 스포일러.' },
         { id: 'i20', name: '📈 상승장 감지기', tier: 'A', type: 'active_self', desc: '힌트 발표 시 다음 폭등 확정 종목 스포일러.' },
-        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'S', type: 'active_global', desc: '자신을 제외한 모두 4초간 행동 불가.' },
-        { id: 'i17', name: '🛑 서킷 브레이커', tier: 'S', type: 'active_global', desc: '모든 거래 5초간 정지.' },
+        { id: 'i5', name: '❄️ 아이스 에이지', tier: 'A', type: 'active_global', desc: '자신을 제외한 모두 6초간 행동 불가.' },
+        { id: 'i17', name: '🛑 서킷 브레이커', tier: 'A', type: 'active_global', desc: '모든 거래 10초간 정지.' },
         { id: 'i11', name: '📖 오픈북 찬스', tier: 'A', type: 'active_self', desc: '다음 5번의 퀴즈에서 오답 제거.' },
         { id: 'i12', name: '📰 가짜 뉴스 살포', tier: 'A', type: 'active_player', desc: '상대방 화면에 가짜 뉴스 도배.' },
         { id: 'i13', name: '💸 작전 세력', tier: 'A', type: 'active_stock', desc: '선택 주식 즉시 폭등 및 요동.' },
@@ -361,6 +335,9 @@
         }, 100); 
     };
 
+    window.shuffleTeams = () => { if(currentRole !== 'host') return; sendPlayerAction({ type: 'HOST_SHUFFLE_TEAMS' }); };
+    window.playAgain = () => { if(currentRole !== 'host') return; sendPlayerAction({ type: 'HOST_PLAY_AGAIN' }); };
+
     const handlePlayerAction = (data, conn = null) => {
         let p = players.find(x => x.id === data.uid);
         if (data.type === 'JOIN') {
@@ -376,7 +353,6 @@
                 if(conn) hostConns[data.uid] = conn; 
                 p.name = data.name; 
             }
-            // 중간 튕김 재접속 시 호스트가 최신 상태를 강제로 즉시 보내줌
             sendToPlayer(data.uid, { type: 'SYNC', roomState, players }, conn);
             hostBroadcast();
             return;
@@ -394,13 +370,41 @@
                 document.body.appendChild(el); setTimeout(() => el.remove(), 3500);
             }
         }
+        else if (data.type === 'HOST_SHUFFLE_TEAMS') {
+            if (roomState.mode === 'team' && players.length > 0) {
+                roomState.teams.forEach(t => t.members = []);
+                let shuffledPlayers = [...players].sort(() => 0.5 - Math.random());
+                shuffledPlayers.forEach((player, index) => {
+                    let teamIndex = index % roomState.teams.length;
+                    let team = roomState.teams[teamIndex];
+                    player.teamId = team.id;
+                    team.members.push(player.id);
+                });
+                roomState.chats.push({ uid: 'system', name: '시스템', text: `🎲 호스트가 팀을 다시 섞었습니다!` });
+            }
+        }
+        else if (data.type === 'HOST_PLAY_AGAIN') {
+            roomState.status = 'lobby'; roomState.endPhase = null; roomState.phase = 'wait';
+            roomState.turnCount = 0; roomState.s11EventTriggered = false; roomState.miniGameActive = false;
+            roomState.miniGameScores = {}; roomState.circuitBreakerUntil = 0; roomState.circuitBreakerBy = '';
+            roomState.extraTimeTriggered = false; roomState.stocks = JSON.parse(JSON.stringify(INITIAL_STOCKS));
+            roomState.news = "개장 준비 중... 30초 후 첫 뉴스가 발표됩니다."; roomState.availableEvents = Array.from({length: NEWS_EVENTS.length}, (_, i) => i);
+            roomState.chats = [{ uid: 'system', name: '시스템', text: `🔄 호스트가 게임을 초기화하고 다시 대기실로 이동했습니다!` }];
+            roomState.teams.forEach(t => { t.cash = 5000; t.portfolio = {}; t.avgPrice = {}; t.shieldCount = 0; t.delistedCost = 0; });
+            players.forEach(player => {
+                player.cash = 5000; player.portfolio = {}; player.avgPrice = {}; player.items = []; player.dropBonus = 0;
+                player.tradeCount = 0; player.correctAnswers = 0; player.wrongAnswers = 0; player.earnedFromQuiz = 0;
+                player.buyAmount = 0; player.itemUseCount = 0; player.openBookCount = 0; player.blindedUntil = 0;
+                player.shieldCount = 0; player.delistedCost = 0;
+            });
+        }
         else if (data.type === 'MINIGAME_SUBMIT') {
             if(!roomState.miniGameScores) roomState.miniGameScores = {};
             roomState.miniGameScores[data.uid] = data.score;
         }
         else if (data.type === 'START_MINIGAME') {
             roomState.miniGameActive = true; roomState.miniGameScores = {}; 
-            roomState.miniGameEndTime = Date.now() + 15000; // 미니게임 시간을 15초로 단축
+            roomState.miniGameEndTime = Date.now() + 15000; 
             roomState.chats.push({ uid: 'system', name: '시스템', text: '🚨 돌발 CEO 게임이 시작되었습니다! 화면을 터치하세요!' });
             roomState.endTime += 15000; roomState.nextPhaseTime += 15000; 
             Object.values(hostConns).forEach(c => { if(c && c.open) c.send({type: 'EVENT_START_MINIGAME', targetUid: 'all'}); });
@@ -450,7 +454,7 @@
             if (r < 0.1) earned = 5000; else if (r < 0.3) earned = 3000; else if (r < 0.6) earned = 2000;
             if (isBottomBuff) earned *= 2;
 
-            let bakeryBonus = 0; if (fin.portfolio['s12'] > 0) { bakeryBonus = Math.min(fin.portfolio['s12'], 100) * 500; earned += bakeryBonus; }
+            let bakeryBonus = 0; if (fin.portfolio['s12'] > 0) { bakeryBonus = fin.portfolio['s12'] * 500; earned += bakeryBonus; }
             fin.cash += earned; p.correctAnswers++; p.earnedFromQuiz = (p.earnedFromQuiz || 0) + earned;
             if (data.usedOpenBook && p.openBookCount > 0) p.openBookCount--;
             
@@ -530,15 +534,10 @@
                 if(target) { const fakeNewsList = ["🚨 [속보] DS AI랩스 상장폐지 절차 돌입!", "🚨 [속보] 예린스페이스, 로켓 폭발로 파산 위기!", "🚨 [단독] 당신의 폰이 해킹당하고 있습니다!"]; const fakeNews = fakeNewsList[Math.floor(Math.random() * fakeNewsList.length)]; sendToPlayer(target.id, { type: 'EVENT_SPAM_NEWS', from: p.name, news: fakeNews }, hostConns[target.id] || null); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `${target.name}님의 화면에 가짜 뉴스를 도배했습니다!` }, conn); }
             } else if (data.itemId === 'i13') { 
                 let s = roomState.stocks.find(x => x.id === data.targetId);
-                if(s) { 
-                    s.prePumpPrice = s.price; // 🔥 작전 시작 전 원래 가격(개미지옥 기준점) 기록!
-                    s.price = Math.min(Math.floor(s.price * 1.50), 200000); 
-                    s.pumpedUntil = Date.now() + 10000; 
-                    roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); 
-                }
+                if(s) { s.prePumpPrice = s.price; s.price = Math.min(Math.floor(s.price * 1.50), 200000); s.pumpedUntil = Date.now() + 10000; roomState.chats.push({ uid: 'system', name: '시스템', text: `📈 누군가의 작전으로 [${s.name}] 주가가 비정상적으로 폭등 중입니다!` }); }
             } else if (data.itemId === 'i5') { 
-                const fTime = Date.now() + 4000; players.forEach(x => { if(getFin(x.id).id !== fin.id) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
-                let msgText = roomState.mode === 'team' ? '우리 팀을 제외한 모두가' : '자신을 제외한 모두가'; roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! ${msgText} 4초간 얼어붙습니다.` }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `적들을 6초간 얼려버렸습니다!` }, conn);
+                const fTime = Date.now() + 3000; players.forEach(x => { if(getFin(x.id).id !== fin.id) { x.frozenUntil = fTime; x.frozenBy = p.name; } });
+                let msgText = roomState.mode === 'team' ? '우리 팀을 제외한 모두가' : '자신을 제외한 모두가'; roomState.chats.push({ uid: 'system', name: '시스템', text: `❄️ ${p.name}님이 [아이스 에이지]를 발동했습니다! ${msgText} 3초간 얼어붙습니다.` }); sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `적들을 3초간 얼려버렸습니다!` }, conn);
             } else if (data.itemId === 'i7') { 
                 let oldAmt = fin.portfolio[data.targetId] || 0; let oldCost = oldAmt * (fin.avgPrice[data.targetId] || 0); fin.portfolio[data.targetId] = oldAmt + 1; fin.avgPrice[data.targetId] = oldCost / fin.portfolio[data.targetId]; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `선택한 주식 1주를 금고에 공짜로 얻었습니다!` }, conn);
             } else if (data.itemId === 'i17') {
@@ -568,10 +567,6 @@
         hostBroadcast();
     };
 
-    const sendPlayerAction = (action) => {
-        if (currentRole === 'host') handlePlayerAction(action, null); else if (myConn && myConn.open) myConn.send(action); else if (bc) bc.postMessage({ type: 'PLAYER_ACTION', action });
-    };
-
     window.setMode = (mode) => {
         document.getElementById('btn-mode-indiv').className = mode === 'indiv' ? 'flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold border-2 border-indigo-400' : 'flex-1 py-3 bg-slate-700 text-slate-400 rounded-xl font-bold border-2 border-transparent';
         document.getElementById('btn-mode-team').className = mode === 'team' ? 'flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold border-2 border-indigo-400' : 'flex-1 py-3 bg-slate-700 text-slate-400 rounded-xl font-bold border-2 border-transparent';
@@ -586,12 +581,16 @@
         if(audioCtx.state === 'suspended') { document.body.addEventListener('click', () => { if(audioCtx.state === 'suspended') audioCtx.resume(); }, { once: true }); }
         let rejoinHtml = '';
         if (savedSession) { rejoinHtml = `<div class="mt-4 bg-slate-800/80 p-4 rounded-xl border border-indigo-500/50 text-center shadow-lg w-full"><p class="text-sm text-slate-300 mb-2">이전 접속 기록이 발견되었습니다.</p><button onclick="window.rejoinRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition active:scale-95">방 [${savedSession.roomCode}] - ${savedSession.name} 님으로 재접속</button><button onclick="window.clearSession()" class="mt-3 text-xs text-slate-500 hover:text-slate-300 underline">접속 기록 초기화</button></div>`; }
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRoom = urlParams.get('room') || '';
+
         document.getElementById('app').innerHTML = `
             <button onclick="window.goHostSetup()" class="absolute top-4 left-4 text-slate-400 hover:text-yellow-400 transition flex items-center gap-2 text-sm font-bold bg-slate-800/50 py-2 px-4 rounded-full border border-slate-700 hover:border-yellow-500/50 z-[100]"><i class="fas fa-crown"></i> 방 만들기 (선생님)</button>
             <div class="flex flex-col items-center justify-center flex-grow fade-in h-full"><h1 class="text-4xl md:text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500 text-center leading-tight mt-8">영단어 주식 타이쿤<br><span class="text-2xl text-yellow-400">🔥 폭풍의 주식시장 🔥</span></h1><p class="text-slate-400 mb-8 text-center text-sm md:text-base">문제를 풀고 주식에 투자해 최고의 부자가 되세요!</p>
                 <div class="bg-glass p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-sm flex flex-col gap-4 border-2 border-indigo-500/30">
                     <div class="text-center mb-2"><span class="inline-block bg-indigo-600 text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">학생 참가용</span></div>
-                    <input type="text" id="join-code" placeholder="방 번호 (4자리)" class="w-full bg-slate-900 text-white border-2 border-slate-600 rounded-xl px-4 py-4 text-center text-2xl font-black focus:border-indigo-500 uppercase transition shadow-inner placeholder-slate-600" maxlength="4" autocomplete="off">
+                    <input type="text" id="join-code" value="${urlRoom}" placeholder="방 번호 (4자리)" class="w-full bg-slate-900 text-white border-2 border-slate-600 rounded-xl px-4 py-4 text-center text-2xl font-black focus:border-indigo-500 uppercase transition shadow-inner placeholder-slate-600" maxlength="4" autocomplete="off">
                     <input type="text" id="join-name" placeholder="내 닉네임" class="w-full bg-slate-900 text-white border-2 border-slate-600 rounded-xl px-4 py-3 text-center text-lg font-bold focus:border-indigo-500 transition shadow-inner placeholder-slate-600" maxlength="10" autocomplete="off">
                     <button onclick="window.joinRoom()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xl py-4 rounded-xl transition shadow-[0_0_20px_rgba(79,70,229,0.4)] active:scale-95 mt-2">게임 참가하기 <i class="fas fa-sign-in-alt ml-1"></i></button>
                     ${rejoinHtml}
@@ -631,10 +630,30 @@
 
     const renderLobby = () => {
         const isHost = currentRole === 'host';
+        const joinUrl = `https://yeomt.github.io/DS-WORD-STOCK-MASTER/?room=${roomCode}`;
+        
         document.getElementById('app').innerHTML = `
             <div class="flex flex-col items-center flex-grow fade-in pt-10 w-full max-w-2xl mx-auto h-full">
-                <div class="bg-glass px-12 py-8 rounded-3xl mb-8 border border-blue-500/30 text-center w-full shadow-[0_0_20px_rgba(59,130,246,0.2)]"><p class="text-slate-400 mb-1">학생들에게 알려줄 접속 코드 <span class="text-xs bg-indigo-600 px-2 py-0.5 rounded text-white ml-2">${roomState.mode === 'team' ? '팀전 모드' : '개인전 모드'}</span></p><div class="text-7xl font-black text-white tracking-widest font-mono">${roomCode}</div></div>
-                <div class="w-full flex justify-between items-end mb-4 px-2"><h3 class="text-lg font-bold">참가자 <span id="player-count" class="text-blue-400 text-2xl ml-1">0</span>명</h3></div>
+                <div class="bg-glass px-6 py-6 md:px-12 md:py-8 rounded-3xl mb-8 border border-blue-500/30 text-center w-full shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
+                        <div class="flex flex-col items-center">
+                            <p class="text-slate-400 mb-1">학생들에게 알려줄 접속 코드 <span class="text-xs bg-indigo-600 px-2 py-0.5 rounded text-white ml-2">${roomState.mode === 'team' ? '팀전 모드' : '개인전 모드'}</span></p>
+                            <div class="text-6xl md:text-7xl font-black text-white tracking-widest font-mono mb-2">${roomCode}</div>
+                        </div>
+                        ${isHost ? `
+                        <div class="flex flex-col items-center border-t md:border-t-0 md:border-l border-slate-600 pt-4 md:pt-0 md:pl-8">
+                            <div class="bg-white p-2 rounded-xl shadow-lg">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(joinUrl)}&margin=0" alt="QR Code" class="w-20 h-20 md:w-24 md:h-24">
+                            </div>
+                            <p class="text-slate-400 text-[10px] md:text-xs mt-2 font-bold">카메라로 스캔하여 접속</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="w-full flex justify-between items-end mb-4 px-2">
+                    <h3 class="text-lg font-bold">참가자 <span id="player-count" class="text-blue-400 text-2xl ml-1">0</span>명</h3>
+                    ${isHost && roomState.mode === 'team' ? `<button onclick="window.shuffleTeams()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs md:text-sm font-bold py-2 px-4 rounded-xl shadow transition active:scale-95"><i class="fas fa-random mr-1"></i>팀 섞기</button>` : ''}
+                </div>
                 <div id="player-grid" class="w-full flex-grow overflow-y-auto pb-20 custom-scrollbar ${roomState.mode==='indiv' ? 'flex flex-wrap content-start gap-2' : ''}"></div>
                 <div class="fixed bottom-0 left-0 w-full p-4 bg-slate-900/90 backdrop-blur border-t border-slate-800 flex justify-center gap-4">
                     ${isHost ? `<button onclick="window.startGame()" id="btn-start" class="w-full max-w-md bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg opacity-50 active:scale-95 transition" disabled>게임 시작</button>` : `<div class="py-4 text-slate-400 animate-pulse font-bold text-center w-full">호스트가 시작하기를 기다리는 중... ⏳</div>`}
@@ -666,7 +685,6 @@
         
         window.mgState = {
             taps: 0, totalScore: 0, gaugePos: 0, gaugeDir: 1, gameActive: true,
-            // 1~3단계 초록색 타겟을 대폭 넓히고 속도를 늦춰 난이도를 하향했습니다.
             levels: [{ speed: 100, width: 30 }, { speed: 160, width: 25 }, { speed: 250, width: 18 }, { speed: 450, width: 10 }, { speed: 800, width: 4 }]
         };
 
@@ -705,7 +723,7 @@
         
         setTimeout(() => { 
             if(window.mgState.gameActive) { window.mgState.gameActive = false; clearInterval(window.mgState.intervalId); sendPlayerAction({ type: 'MINIGAME_SUBMIT', uid: myUid, score: window.mgState.totalScore }); const ol = document.getElementById('minigame-overlay'); if(ol) ol.innerHTML = `<div class="text-center w-full"><h2 class="text-3xl font-black text-white mb-4">시간 초과!</h2><p class="text-slate-400 text-lg animate-pulse">결과 전송 중...</p></div>`; } 
-        }, 14000); // 14초 후 강제 제출
+        }, 14000); 
     };
 
     window.handleMgTap = (e) => {
@@ -743,7 +761,6 @@
             if(roomState.status !== 'playing') return clearInterval(hostTimerInterval);
             const now = Date.now();
             
-            // 미니게임 호스트 평가 로직 (모두 제출 시 15초 안 기다리고 바로 끝남)
             if (roomState.miniGameActive) {
                 let submitted = Object.keys(roomState.miniGameScores).length;
                 let isAllSubmitted = (submitted > 0 && submitted >= players.length);
@@ -807,24 +824,10 @@
                         stock.price = np;
                     });
 
-                    // 기존 경식디펜스 코드를 지우고 아래 코드로 교체하세요.
-
-// 경식디펜스 (인버스) 특성: 하락장 무효화 및 절대 상승
-if (downCount >= 6) { // 12개 중 6개(절반) 이상만 떨어져도 발동하도록 조건 완화
-    let s2 = roomState.stocks.find(x=>x.id==='s2');
-    let prevPrice = s2.history.length > 1 ? s2.history[s2.history.length - 2] : s2.price;
-    
-    // 만약 원래 떨어질 운명(-파란불)이었다면 하락을 취소하고, 이전 가격에서 무조건 15% 강제 상승
-    if (s2.price <= prevPrice) {
-        s2.price = Math.floor(prevPrice * 1.15);
-    } else {
-        // 원래 오를 운명(+빨간불)이었다면 오른 가격에 추가로 15% 버프 뻥튀기
-        s2.price = Math.floor(s2.price * 1.15); 
-    }
-    
-    s2.history[s2.history.length - 1] = s2.price; // 버프된 가격으로 차트 동기화
-    roomState.chats.push({ uid: 'system', name: '시스템', text: `🛡️ [경식디펜스] 하락장 방어 기제 발동! 안전자산 쏠림 현상으로 나홀로 15% 기습 상승!` });
-}
+                    if (downCount > roomState.stocks.length / 2) {
+                        let s2 = roomState.stocks.find(x=>x.id==='s2'); s2.price = Math.floor(s2.price * 1.15); s2.history[s2.history.length - 1] = s2.price; 
+                        roomState.chats.push({ uid: 'system', name: '시스템', text: `🛡️ [경식디펜스] 시장 전반 하락세 감지! 방어 기제로 나홀로 15% 기습 상승!` });
+                    }
 
                     roomState.turnCount = (roomState.turnCount || 0) + 1;
                     if (roomState.turnCount % 3 === 0) {
@@ -836,8 +839,8 @@ if (downCount >= 6) { // 12개 중 6개(절반) 이상만 떨어져도 발동하
                     let finsToDiv = roomState.mode === 'team' ? roomState.teams : players;
                     finsToDiv.forEach(f => {
                         let divMsg = []; let totalDiv = 0;
-                        if (f.portfolio['s10'] > 0) { let amt = Math.floor(f.portfolio['s10'] * roomState.stocks.find(s=>s.id==='s10').price * 0.05); amt = Math.min(amt, 500000); f.cash += amt; totalDiv += amt; divMsg.push(`[경환캐피탈] 예금 이자 ${amt.toLocaleString()}원${amt===500000?' (최대 한도)':''}`); }
-if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(amt, 300000); f.cash += amt; totalDiv += amt; divMsg.push(`[병하전자] 고정 배당금 ${amt.toLocaleString()}원${amt===300000?' (최대 한도)':''}`); }
+                        if (f.portfolio['s10'] > 0) { let amt = Math.floor(f.portfolio['s10'] * roomState.stocks.find(s=>s.id==='s10').price * 0.05); amt = Math.min(amt, 500000); f.cash += amt; totalDiv += amt; divMsg.push(`[경환캐피탈] 이자 ${amt.toLocaleString()}원${amt===500000?'(최대)':''}`); }
+                        if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(amt, 300000); f.cash += amt; totalDiv += amt; divMsg.push(`[병하전자] 배당금 ${amt.toLocaleString()}원${amt===300000?'(최대)':''}`); }
                         if (totalDiv > 0) {
                             if (roomState.mode === 'team') { f.members.forEach(mid => sendToPlayer(mid, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[mid] || null)); } 
                             else { sendToPlayer(f.id, { type: 'EVENT_DIVIDEND', msg: divMsg.join('\n'), total: totalDiv }, hostConns[f.id] || null); }
@@ -867,24 +870,14 @@ if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(
             roomState.stocks.forEach(stock => {
                 if (stock.pumpedUntil) { 
                     if (now < stock.pumpedUntil) { 
-                        // 1. 작전 진행 중 (10초간): 무한 폭등 (최대 20만원 제한)
                         stock.price = Math.min(Math.floor(stock.price * (1 + (Math.random() * 0.02 + 0.01))), 200000); 
-                        stock.history.push(stock.price); 
-                        if(stock.history.length > 100) stock.history.shift(); 
-                        pumped = true; 
+                        stock.history.push(stock.price); if(stock.history.length > 100) stock.history.shift(); pumped = true; 
                     } else {
-                        // 2. 작전 종료 직후: 거품 붕괴! (작전 시작 전 가격보다 더 떨어짐)
                         let basePrice = stock.prePumpPrice || (stock.price * 0.5);
-                        stock.price = Math.max(50, Math.floor(basePrice * 0.7)); // 시작 전 가격의 70% 로 추락 (최소 50원 보장)
-                        
-                        stock.history.push(stock.price);
-                        if(stock.history.length > 100) stock.history.shift();
-                        
+                        stock.price = Math.max(50, Math.floor(basePrice * 0.7)); 
+                        stock.history.push(stock.price); if(stock.history.length > 100) stock.history.shift();
                         roomState.chats.push({ uid: 'system', name: '시스템', text: `🚨 [거품 붕괴] 작전 세력이 털고 도망갔습니다! [${stock.name}] 주가가 작전 이전보다 더 폭락했습니다!` });
-                        
-                        delete stock.pumpedUntil;
-                        delete stock.prePumpPrice;
-                        pumped = true;
+                        delete stock.pumpedUntil; delete stock.prePumpPrice; pumped = true;
                     }
                 }
             });
@@ -912,7 +905,6 @@ if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(
         }, 1000);
     };
 
-    // 게임 종료 처리 확실하게 보장하는 코드로 수정
     window.endGameRoom = () => { 
         window.stopBGM(); 
         roomState.status = 'ended'; 
@@ -937,10 +929,13 @@ if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(
             const prevStatus = roomState.status; const prevPhase = roomState.endPhase;
             roomState = data.roomState; players = data.players; myData = players.find(p => p.id === myUid);
             
-            if (roomState.status === 'lobby') renderLobby();
+            if (roomState.status === 'lobby') {
+                if(document.getElementById('app').innerHTML === '' || !document.getElementById('player-grid')) renderLobby();
+                else updateLobbyPlayers();
+            }
             else if (roomState.status === 'playing') {
                 if(prevStatus !== 'playing') { 
-                    isWaitingForResult = false; // 중간 재접속 시 로딩 락(Lock) 해제
+                    isWaitingForResult = false; 
                     window.playSound('bgm'); document.getElementById('app').innerHTML = ''; renderPlayerGame(); handleChatVisibility(); 
                 } else { window.updatePlayerGameUI(); }
                 window.updateChatUI();
@@ -961,7 +956,6 @@ if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(
                 if (data.item) { window.playSound('item'); extraMsg += `\n\n🎁 [${data.item.tier}급] ${data.item.name} 획득!`; }
                 showCustomPopup("정답!", `총 ${data.earned.toLocaleString()}원을 확보했습니다.${extraMsg}`, "⭕", "bg-green-600"); quizCurrentQuestion = null; document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame();
             }
-            // 라스트 댄스 1초(1000ms)로 수정
             else if (data.type === 'EVENT_EXTRA_TIME' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('siren'); window.flashScreen('bg-red-600/50'); showCustomPopup('🚨 시간 종료! 라스트 댄스 10초!', '00:00 시간 마감! 마지막 시장 대폭풍 변동이 적용되었습니다!', '⏰', 'bg-red-800', 1000); }
             else if (data.type === 'EVENT_START_MINIGAME' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('item'); window.flashScreen('bg-green-600/40'); window.startMiniGameUI(); }
             else if (data.type === 'EVENT_MINIGAME_RESULT' && (data.targetUid === 'all' || data.targetUid === myUid)) {
@@ -988,7 +982,7 @@ if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(
             else if (data.type === 'EVENT_DEFENDED' && data.targetUid === myUid) { window.vibrateDevice([100, 100]); showCustomPopup('🛡️ 방어 성공!', `${data.from}님의 치명적인 공격을 방어막으로 막아냈습니다!\n(남은 방어 횟수: ${data.remain}회)`, '🛡️', 'bg-blue-700'); document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); }
             else if (data.type === 'EVENT_ATTACK_BLOCKED' && data.targetUid === myUid) { window.vibrateDevice([100, 100]); showCustomPopup('❌ 공격 실패', `아뿔싸! ${data.targetName} 방어막을 가동하고 있었습니다!`, '🛡️', 'bg-red-700'); }
             else if (data.type === 'EVENT_OPENBOOK' && data.targetUid === myUid) { showCustomPopup('📖 오픈북 발동!', '다음 5번의 퀴즈는 오답이 사라지고 정답만 보입니다!', '📖', 'bg-indigo-600'); }
-            else if (data.type === 'EVENT_CIRCUIT_BREAKER' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('siren'); window.flashScreen('bg-red-600/40'); showCustomPopup('🚨 서킷 브레이커', `${data.by}님이 서킷 브레이커를 발동했습니다!\n6초간 모든 거래가 중지됩니다.\n(비스트하트 코인은 거래 가능)`, '🛑', 'bg-red-800'); }
+            else if (data.type === 'EVENT_CIRCUIT_BREAKER' && (data.targetUid === 'all' || data.targetUid === myUid)) { window.playSound('siren'); window.flashScreen('bg-red-600/40'); showCustomPopup('🚨 서킷 브레이커', `${data.by}님이 서킷 브레이커를 발동했습니다!\n5초간 모든 거래가 중지됩니다.\n(비스트하트 코인은 거래 가능)`, '🛑', 'bg-red-800'); }
             else if (data.type === 'EVENT_SPAM_NEWS' && data.targetUid === myUid) {
                 window.vibrateDevice([200, 50, 200]); window.flashScreen('bg-red-600/50'); window.playSound('siren');
                 for(let i=0; i<6; i++) { setTimeout(() => { let div = document.createElement('div'); div.className = 'fixed z-[9999] bg-red-800 border-4 border-red-500 p-4 rounded-xl shadow-2xl flex flex-col items-center justify-center animate-bounce cursor-pointer w-48 text-center'; div.style.left = (5 + Math.random()*60) + '%'; div.style.top = (5 + Math.random()*60) + '%'; div.style.transform = `rotate(${(Math.random()-0.5)*30}deg)`; div.style.pointerEvents = 'auto'; div.innerHTML = `<div class="text-3xl mb-2">📰</div><div class="text-white font-black whitespace-pre-wrap pointer-events-none">${data.news}</div><div class="text-xs text-yellow-300 mt-2 font-bold animate-pulse pointer-events-none">(터치해서 닫기)</div>`; const closeFunc = function(e) { e.preventDefault(); e.stopPropagation(); window.playSound('tick'); this.remove(); }; div.onclick = closeFunc; div.ontouchstart = closeFunc; document.body.appendChild(div); }, i * 150); }
@@ -1181,7 +1175,7 @@ if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(
         if (isFrozen()) { window.vibrateDevice([50, 50]); return showCustomPopup("행동 불가", "얼어있어서 불가능합니다!", "🥶", "bg-blue-800"); }
         if (ans === quizCurrentQuestion.correct) {
             isWaitingForResult = true; 
-            setTimeout(() => { if(isWaitingForResult) { isWaitingForResult = false; const el = document.getElementById('player-game-container'); if (el) el.outerHTML = ''; renderPlayerGame(); } }, 600); // 0.6초로 대기시간 대폭 단축
+            setTimeout(() => { if(isWaitingForResult) { isWaitingForResult = false; const el = document.getElementById('player-game-container'); if (el) el.outerHTML = ''; renderPlayerGame(); } }, 600); 
             sendPlayerAction({ type: 'QUIZ_CORRECT', uid: myUid, usedOpenBook: (myData && myData.openBookCount > 0) });
             document.getElementById('player-game-container').outerHTML = ''; renderPlayerGame(); 
         } else { 
@@ -1331,7 +1325,10 @@ if (f.portfolio['s5'] > 0) { let amt = f.portfolio['s5'] * 1500; amt = Math.min(
                         </div>
                     </div>
                 </div>
-                <button onclick="window.clearSession()" class="w-full mt-6 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-500 py-5 rounded-2xl font-black text-xl shadow-2xl active:scale-95 transition text-white shrink-0"><i class="fas fa-home mr-2"></i>접속 기록 초기화 후 처음 화면으로</button>
+                <div class="w-full mt-6 flex flex-col sm:flex-row gap-4 shrink-0">
+                    ${currentRole === 'host' ? `<button onclick="window.playAgain()" class="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 border border-green-500 py-5 rounded-2xl font-black text-xl shadow-2xl active:scale-95 transition text-white"><i class="fas fa-redo-alt mr-2"></i>같은 멤버로 다시 시작</button>` : ''}
+                    <button onclick="window.clearSession()" class="flex-1 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-500 py-5 rounded-2xl font-black text-xl shadow-2xl active:scale-95 transition text-white"><i class="fas fa-home mr-2"></i>처음 화면으로 (초기화)</button>
+                </div>
             </div>`;
     };
 
