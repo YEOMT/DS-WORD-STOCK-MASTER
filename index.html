@@ -98,6 +98,7 @@
     </div>
 
 <script>
+    // 호스트 창 닫힘 감지 및 방 폭파 로직
     window.addEventListener('beforeunload', (e) => {
         if (currentRole === 'host' && window.fbDb && roomCode) {
             window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/status`), 'destroyed');
@@ -152,24 +153,51 @@
     try { savedSession = JSON.parse(localStorage.getItem('stockedu_session')); } catch(e) {}
     const myUid = savedSession ? savedSession.uid : Math.random().toString(36).substr(2, 9);
     
-    window.userTokens = parseInt(localStorage.getItem('stockedu_tokens') || '0');
-    window.userCollection = JSON.parse(localStorage.getItem('stockedu_collection') || '[]');
-    window.myEquippedEmoji = localStorage.getItem('stockedu_equipped') || '';
-
+    // 글로벌 가챠 풀 (추가 이모지 17종 완벽 적용)
     const GACHA_POOL = [
         { emoji: '🤖', tier: 'Bronze', name: 'DS AI랩스' },
         { emoji: '🪖', tier: 'Bronze', name: 'KS디펜스' },
         { emoji: '🛒', tier: 'Bronze', name: '유진커머스' },
         { emoji: '🍩', tier: 'Bronze', name: '지원베이커리' },
+        { emoji: '😆', tier: 'Bronze', name: '행복' },
+        { emoji: '😍', tier: 'Bronze', name: '하트뿅뿅' },
+        { emoji: '😭', tier: 'Bronze', name: '오열하는 개미' },
+        { emoji: '😺', tier: 'Bronze', name: '냥냥펀치' },
+        { emoji: '🐼', tier: 'Bronze', name: '판다장' },
+        { emoji: '💪', tier: 'Bronze', name: '풀매수 가즈아' },
+        { emoji: '🥀', tier: 'Bronze', name: '휴지조각' },
+        { emoji: '❤️', tier: 'Bronze', name: '개미의 사랑' },
+        { emoji: '😡', tier: 'Bronze', name: '물린 개미' },
         { emoji: '🚀', tier: 'Silver', name: '예린스페이스' },
         { emoji: '♻️', tier: 'Silver', name: '형진에코' },
         { emoji: '🎮', tier: 'Silver', name: '다솜게임즈' },
         { emoji: '🎤', tier: 'Silver', name: 'JH엔터' },
+        { emoji: '🥵', tier: 'Silver', name: '불타는 시장' },
+        { emoji: '🥸', tier: 'Silver', name: '작전세력' },
+        { emoji: '🐮', tier: 'Silver', name: '흑우' },
+        { emoji: '💔', tier: 'Silver', name: '상장폐지의 아픔' },
+        { emoji: '💀', tier: 'Silver', name: '싸늘하게 식다' },
         { emoji: '🐳', tier: 'Gold', name: '병하전자' },
         { emoji: '🪙', tier: 'Gold', name: '비스트하트 코인' },
         { emoji: '🧬', tier: 'Gold', name: 'YG바이오' },
-        { emoji: '💰', tier: 'Gold', name: '경환캐피탈' }
+        { emoji: '💰', tier: 'Gold', name: '경환캐피탈' },
+        { emoji: '🫅', tier: 'Gold', name: '대주주 전하' },
+        { emoji: '🐺', tier: 'Gold', name: '월가의 늑대' },
+        { emoji: '🤡', tier: 'Gold', name: '올해의 광대' }
     ];
+
+    // 희귀도에 따른 이모지 뱃지 HTML 생성 헬퍼 함수
+    window.getEmojiHTML = (emojiStr) => {
+        if(!emojiStr) return '';
+        const item = GACHA_POOL.find(g => g.emoji === emojiStr);
+        let bgClass = 'bg-slate-700 border-slate-500 text-white'; 
+        if (item) {
+            if (item.tier === 'Gold') bgClass = 'bg-gradient-to-br from-yellow-300 to-yellow-600 border-yellow-200 shadow-[0_0_8px_rgba(234,179,8,0.8)] text-yellow-900';
+            else if (item.tier === 'Silver') bgClass = 'bg-gradient-to-br from-slate-200 to-slate-400 border-white shadow-[0_0_8px_rgba(148,163,184,0.6)] text-slate-900';
+            else if (item.tier === 'Bronze') bgClass = 'bg-gradient-to-br from-orange-600 to-orange-800 border-orange-400 shadow-[0_0_8px_rgba(194,65,12,0.6)] text-white';
+        }
+        return `<span class="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full ${bgClass} border text-xs md:text-sm mr-1.5 align-middle shrink-0 font-normal drop-shadow-sm pb-[1px]">${emojiStr}</span>`;
+    };
 
     let currentRole = null; let roomCode = null; let currentTab = 'quiz'; let quizCurrentQuestion = null; let lastNewsMsg = null; 
     let playerTimerInterval = null; let lastChatLength = 0; let isWaitingForResult = false; let quizWordQueue = []; let toastTimeout = null;
@@ -185,7 +213,7 @@
     let players = []; let myData = null; let hostTimerInterval = null;
 
     const DEFAULT_WORDS = [
-        {word:'joy',meaning:'기쁨'},{word:'travel',meaning:'여행하다'},{word:'vacation',meaning:'방학, 휴가'},{word:'awesome',meaning:'멋진, 기막히게 좋은'},{word:'gondola',meaning:'곤돌라'},{word:'lesson',meaning:'수업, 교훈'},{word:'surf',meaning:'파도타기를 하다'},{word:'aunt',meaning:'이모, 고모, 숙모'},{word:'camping',meaning:'야영, 캠핑'},{word:'trail',meaning:'오솔길, 산길'},{word:'explain',meaning:'설명하다'},{word:'schedule',meaning:'일정, 시간표'},{word:'musical',meaning:'뮤지컬'},{word:'museum',meaning:'박물관'},{word:'amusement park',meaning:'놀이공원'},{word:'join',meaning:'함께하다, 합류하다'},{word:'order',meaning:'주문하다'},{word:'yummy',meaning:'아주 맛있는'},{word:'look forward to',meaning:'~을 기대하다'},{word:'colorful',meaning:'다채로운, 화려한'},{word:'village',meaning:'마 마을'},{word:'building',meaning:'건물'},{word:'cliff',meaning:'절벽'},{word:'view',meaning:'경관, 전망'},{word:'fantastic',meaning:'환상적인'},{word:'terrace',meaning:'테라스'},{word:'especially',meaning:'특히'},{word:'spend',meaning:'쓰다, 보내다'},{word:'perfect',meaning:'완벽한'},{word:'pay',meaning:'지불하다'},{word:'entrance fee',meaning:'입장료'},{word:'rental',meaning:'대여, 임대'},{word:'explore',meaning:'탐험하다, 답사하다'},{word:'pearl',meaning:'진주'},{word:'narrow',meaning:'좁은'},{word:'souvenir',meaning:'기념품'},{word:'local',meaning:'현지인, 주민'},{word:'famous',meaning:'유명한'},{word:'sunrise',meaning:'일출, 해돋이'},{word:'early',meaning:'일찍'},{word:'different',meaning:'다른'},{word:'attitude',meaning:'태도'},{word:'result',meaning:'결과'},{word:'hold',meaning:'개최하다, 열다'},{word:'contest',meaning:'대회, 경연'},{word:'enter',meaning:'참가하다, 들어가다'},{word:'kid',meaning:'농담하다'},{word:'terrible',meaning:'끔찍한, 형편없는'},{word:'interested',meaning:'관심 있는'},{word:'guess',meaning:'추측하다'},{word:'happen',meaning:'일어나다, 발생하다'},{word:'situation',meaning:'상황'},{word:'mistake',meaning:'실수'},{word:'text',meaning:'문자를 보내다'},{word:'tired',meaning:'피곤한'},{word:'waste',meaning:'낭비하다'},{word:'fault',meaning:'잘못, 책임'},{word:'quit',meaning:'그만두다, 포기하다'},{word:'hopeless',meaning:'절망적인, 가망 없는'},{word:'practice',meaning:'연습하다; 연습'},{word:'cheer up',meaning:'기운을 내다, 격려하다'},{word:'worry',meaning:'걱정하다'},{word:'almost',meaning:'거의'},{word:'prize',meaning:'상'},{word:'finish',meaning:'끝내다, 마치다'},{word:'proud',meaning:'자랑스러운'},{word:'support',meaning:'지지, 응원'},{word:'sick',meaning:'아픈'},{word:'agree',meaning:'동의하다'},{word:'tomorrow',meaning:'내일'}
+        {word:'joy',meaning:'기쁨'},{word:'travel',meaning:'여행하다'},{word:'vacation',meaning:'방학, 휴가'},{word:'awesome',meaning:'멋진, 기막히게 좋은'},{word:'gondola',meaning:'곤돌라'},{word:'lesson',meaning:'수업, 교훈'},{word:'surf',meaning:'파도타기를 하다'},{word:'aunt',meaning:'이모, 고모, 숙모'},{word:'camping',meaning:'야영, 캠핑'},{word:'trail',meaning:'오솔길, 산길'},{word:'explain',meaning:'설명하다'},{word:'schedule',meaning:'일정, 시간표'},{word:'musical',meaning:'뮤지컬'},{word:'museum',meaning:'박물관'},{word:'amusement park',meaning:'놀이공원'},{word:'join',meaning:'함께하다, 합류하다'},{word:'order',meaning:'주문하다'},{word:'yummy',meaning:'아주 맛있는'},{word:'look forward to',meaning:'~을 기대하다'},{word:'colorful',meaning:'다채로운, 화려한'},{word:'village',meaning:'마을'},{word:'building',meaning:'건물'},{word:'cliff',meaning:'절벽'},{word:'view',meaning:'경관, 전망'},{word:'fantastic',meaning:'환상적인'},{word:'terrace',meaning:'테라스'},{word:'especially',meaning:'특히'},{word:'spend',meaning:'쓰다, 보내다'},{word:'perfect',meaning:'완벽한'},{word:'pay',meaning:'지불하다'},{word:'entrance fee',meaning:'입장료'},{word:'rental',meaning:'대여, 임대'},{word:'explore',meaning:'탐험하다, 답사하다'},{word:'pearl',meaning:'진주'},{word:'narrow',meaning:'좁은'},{word:'souvenir',meaning:'기념품'},{word:'local',meaning:'현지인, 주민'},{word:'famous',meaning:'유명한'},{word:'sunrise',meaning:'일출, 해돋이'},{word:'early',meaning:'일찍'},{word:'different',meaning:'다른'},{word:'attitude',meaning:'태도'},{word:'result',meaning:'결과'},{word:'hold',meaning:'개최하다, 열다'},{word:'contest',meaning:'대회, 경연'},{word:'enter',meaning:'참가하다, 들어가다'},{word:'kid',meaning:'농담하다'},{word:'terrible',meaning:'끔찍한, 형편없는'},{word:'interested',meaning:'관심 있는'},{word:'guess',meaning:'추측하다'},{word:'happen',meaning:'일어나다, 발생하다'},{word:'situation',meaning:'상황'},{word:'mistake',meaning:'실수'},{word:'text',meaning:'문자를 보내다'},{word:'tired',meaning:'피곤한'},{word:'waste',meaning:'낭비하다'},{word:'fault',meaning:'잘못, 책임'},{word:'quit',meaning:'그만두다, 포기하다'},{word:'hopeless',meaning:'절망적인, 가망 없는'},{word:'practice',meaning:'연습하다; 연습'},{word:'cheer up',meaning:'기운을 내다, 격려하다'},{word:'worry',meaning:'걱정하다'},{word:'almost',meaning:'거의'},{word:'prize',meaning:'상'},{word:'finish',meaning:'끝내다, 마치다'},{word:'proud',meaning:'자랑스러운'},{word:'support',meaning:'지지, 응원'},{word:'sick',meaning:'아픈'},{word:'agree',meaning:'동의하다'},{word:'tomorrow',meaning:'내일'}
     ];
     
     const INITIAL_STOCKS = [
@@ -250,10 +278,7 @@
         document.body.appendChild(overlay);
         void overlay.offsetWidth; 
         overlay.style.opacity = '1'; 
-        setTimeout(() => { 
-            overlay.style.opacity = '0'; 
-            setTimeout(() => overlay.remove(), 400); 
-        }, 100);
+        setTimeout(() => { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 400); }, 100);
     };
 
     window.showToast = (msg, icon) => {
@@ -267,11 +292,8 @@
     const sendToPlayer = (uid, payload) => {
         if (!window.fbDb || !roomCode) return;
         const finalPayload = { ...payload, targetUid: uid, ts: Date.now() }; 
-        if (uid === 'all') {
-            window.fbPush(window.fbRef(window.fbDb, `rooms/${roomCode}/events_global`), finalPayload);
-        } else {
-            window.fbPush(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${uid}`), finalPayload);
-        }
+        if (uid === 'all') window.fbPush(window.fbRef(window.fbDb, `rooms/${roomCode}/events_global`), finalPayload);
+        else window.fbPush(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${uid}`), finalPayload);
     };
 
     let broadcastTimeout = null;
@@ -280,63 +302,34 @@
         if (broadcastTimeout) clearTimeout(broadcastTimeout);
         broadcastTimeout = setTimeout(() => {
             if (roomState.chats && roomState.chats.length > 50) roomState.chats = roomState.chats.slice(-50); 
-            
             window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/state`), roomState);
             window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/players`), players);
-            
             if(roomState.status === 'lobby') { updateLobbyPlayers(); }
-            else if(roomState.status === 'playing') { 
-                if(!document.getElementById('host-game-container')) window.renderHostGameSkeleton(); 
-                window.updateHostGameUI(); window.updateChatUI(); handleChatVisibility(); 
-            }
+            else if(roomState.status === 'playing') { if(!document.getElementById('host-game-container')) window.renderHostGameSkeleton(); window.updateHostGameUI(); window.updateChatUI(); handleChatVisibility(); }
             else if(roomState.status === 'ended') { 
-                if(roomState.endPhase === 'summary') {
-                    if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('주식 장 마감')) renderMarketSummary(); 
-                } else {
-                    if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('최종 시상식')) renderEndScreen(); 
-                }
+                if(roomState.endPhase === 'summary') { if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('주식 장 마감')) window.renderMarketSummary(); } 
+                else { if(!document.querySelector('h1') || !document.querySelector('h1').innerText.includes('최종 시상식')) window.renderEndScreen(); }
                 handleChatVisibility(); 
             }
         }, 100); 
     };
 
     window.openGachaModal = () => {
+        const existing = document.getElementById('gacha-modal'); if(existing) existing.remove();
         let collectionHtml = GACHA_POOL.map(g => {
-            let hasIt = window.userCollection.includes(g.emoji);
-            let isEquipped = window.myEquippedEmoji === g.emoji;
+            let hasIt = window.userCollection.includes(g.emoji); let isEquipped = window.myEquippedEmoji === g.emoji;
             let bg = hasIt ? (g.tier==='Gold'?'bg-yellow-600':(g.tier==='Silver'?'bg-slate-400':'bg-orange-800')) : 'bg-slate-800 opacity-50 grayscale';
             return `<div class="p-2 rounded-xl border border-slate-600 ${bg} text-center flex flex-col items-center transition ${hasIt ? 'cursor-pointer hover:scale-105 shadow-lg' : ''}" ${hasIt ? `onclick="window.equipEmoji('${g.emoji}')"` : ''}>
-                <div class="text-3xl">${g.emoji}</div>
-                <div class="text-[10px] font-bold mt-1 text-white">${g.name}</div>
-                ${isEquipped ? '<div class="text-xs font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full mt-1 border border-indigo-400 shadow">장착중</div>' : ''}
-            </div>`;
+                <div class="text-3xl">${g.emoji}</div><div class="text-[10px] font-bold mt-1 text-white break-keep">${g.name}</div>${isEquipped ? '<div class="text-xs font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full mt-1 border border-indigo-400 shadow">장착중</div>' : ''}</div>`;
         }).join('');
 
-        const html = `<div id="gacha-modal" class="fixed inset-0 z-[500] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 fade-in">
-            <div class="bg-slate-800 p-6 rounded-3xl w-full max-w-lg border-2 border-yellow-500 max-h-[90vh] flex flex-col shadow-[0_0_30px_rgba(234,179,8,0.3)]">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-2xl font-black text-white"><i class="fas fa-crown text-yellow-400 mr-2"></i>내 컬렉션</h3>
-                    <div class="text-yellow-400 font-black bg-slate-900 px-4 py-2 rounded-full border border-yellow-500 shadow-inner">보유 토큰: <span id="token-count" class="text-xl">${window.userTokens}</span> 개</div>
-                </div>
-                <div class="text-xs text-slate-400 mb-4 text-center font-bold bg-slate-900/50 p-2 rounded-lg">획득한 이모지를 터치하여 내 닉네임 옆에 장착할 수 있습니다!</div>
-                <div class="grid grid-cols-3 md:grid-cols-4 gap-3 mb-6 overflow-y-auto pr-2 custom-scrollbar flex-grow pb-4 border-b border-slate-700">
-                    ${collectionHtml}
-                </div>
-                <button onclick="window.doGacha()" class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 p-4 rounded-xl font-black text-white shadow-[0_0_15px_rgba(234,179,8,0.5)] active:scale-95 transition mb-3 text-lg flex justify-center items-center gap-2 border-2 border-yellow-300">
-                    <i class="fas fa-gift text-2xl"></i> 1 토큰으로 가챠 뽑기!
-                </button>
-                <button onclick="document.getElementById('gacha-modal').remove()" class="w-full bg-slate-600 hover:bg-slate-500 p-3 rounded-xl font-black text-white shadow-lg active:scale-95 transition shrink-0 border border-slate-500">닫기</button>
-            </div>
-        </div>`;
+        const html = `<div id="gacha-modal" class="fixed inset-0 z-[500] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 fade-in"><div class="bg-slate-800 p-6 rounded-3xl w-full max-w-lg border-2 border-yellow-500 max-h-[90vh] flex flex-col shadow-[0_0_30px_rgba(234,179,8,0.3)]"><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-black text-white"><i class="fas fa-crown text-yellow-400 mr-2"></i>내 컬렉션</h3><div class="text-yellow-400 font-black bg-slate-900 px-4 py-2 rounded-full border border-yellow-500 shadow-inner">보유 토큰: <span id="token-count" class="text-xl">${window.userTokens}</span> 개</div></div><div class="text-xs text-slate-400 mb-4 text-center font-bold bg-slate-900/50 p-2 rounded-lg">획득한 이모지를 터치하여 내 닉네임 옆에 장착할 수 있습니다!</div><div class="grid grid-cols-3 md:grid-cols-4 gap-3 mb-6 overflow-y-auto pr-2 custom-scrollbar flex-grow pb-4 border-b border-slate-700">${collectionHtml}</div><button onclick="window.doGacha()" class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 p-4 rounded-xl font-black text-white shadow-[0_0_15px_rgba(234,179,8,0.5)] active:scale-95 transition mb-3 text-lg flex justify-center items-center gap-2 border-2 border-yellow-300"><i class="fas fa-gift text-2xl"></i> 1 토큰으로 가챠 뽑기!</button><button onclick="document.getElementById('gacha-modal').remove()" class="w-full bg-slate-600 hover:bg-slate-500 p-3 rounded-xl font-black text-white shadow-lg active:scale-95 transition shrink-0 border border-slate-500">닫기</button></div></div>`;
         document.body.insertAdjacentHTML('beforeend', html);
     };
 
     window.equipEmoji = (emoji) => {
-        window.myEquippedEmoji = emoji;
-        localStorage.setItem('stockedu_equipped', emoji);
-        document.getElementById('gacha-modal').remove();
-        window.openGachaModal(); 
-        
+        window.myEquippedEmoji = emoji; localStorage.setItem('stockedu_equipped', emoji);
+        const existing = document.getElementById('gacha-modal'); if(existing) existing.remove(); window.openGachaModal(); 
         if (roomState.status === 'lobby' || roomState.status === 'playing') {
             const n = document.getElementById('join-name') ? document.getElementById('join-name').value.trim() : (myData ? myData.name : '');
             if(n) sendPlayerAction({ type: 'JOIN', uid: myUid, name: n, equippedEmoji: emoji });
@@ -348,16 +341,12 @@
         window.userTokens--; localStorage.setItem('stockedu_tokens', window.userTokens);
         
         let r = Math.random(); let tier = r < 0.1 ? 'Gold' : (r < 0.4 ? 'Silver' : 'Bronze');
-        let pool = GACHA_POOL.filter(x => x.tier === tier);
-        let result = pool[Math.floor(Math.random() * pool.length)];
+        let pool = GACHA_POOL.filter(x => x.tier === tier); let result = pool[Math.floor(Math.random() * pool.length)];
         
-        if(!window.userCollection.includes(result.emoji)) {
-            window.userCollection.push(result.emoji);
-            localStorage.setItem('stockedu_collection', JSON.stringify(window.userCollection));
-        }
-
-        document.getElementById('gacha-modal').remove(); window.playSound('coin');
-        showCustomPopup(`${tier} 획득!`, `[${result.name}] 이모지 획득!`, result.emoji, tier === 'Gold' ? 'bg-yellow-600' : (tier === 'Silver' ? 'bg-slate-500' : 'bg-orange-800'));
+        if(!window.userCollection.includes(result.emoji)) { window.userCollection.push(result.emoji); localStorage.setItem('stockedu_collection', JSON.stringify(window.userCollection)); }
+        const existing = document.getElementById('gacha-modal'); if(existing) existing.remove();
+        
+        window.playSound('coin'); showCustomPopup(`${tier} 획득!`, `[${result.name}] 이모지 획득!`, result.emoji, tier === 'Gold' ? 'bg-yellow-600' : (tier === 'Silver' ? 'bg-slate-500' : 'bg-orange-800'));
         setTimeout(() => window.openGachaModal(), 2000);
     };
 
@@ -385,59 +374,29 @@
         const targetFin = getFin(targetId); let stockOptionsHtml = '';
         const targetStocks = Object.entries(targetFin.portfolio || {}).filter(([_, amt]) => amt > 0);
         const targetLabel = roomState.mode === 'team' ? `${roomState.teams.find(t=>t.id===targetPlayer.teamId)?.name} 금고` : `${targetPlayer.name}의 주식`;
-
-        if (targetStocks.length === 0) {
-            stockOptionsHtml = `<div class="text-center text-slate-400 font-bold py-6 bg-slate-900/50 rounded-xl mb-2 border border-slate-700">상대방이 보유한 주식이 없습니다.</div><button onclick="document.getElementById('target-modal').remove()" class="w-full bg-slate-600 p-3 rounded-xl font-bold active:scale-95 transition text-white shadow-md">돌아가기</button>`;
-        } else {
-            targetStocks.forEach(([sId, amt]) => {
-                const s = roomState.stocks.find(x => x.id === sId);
-                if(s) stockOptionsHtml += `<button onclick="window.confirmUseItem('${itemId}', ${itemIdx}, '${targetId}', '${sId}')" class="w-full bg-slate-700 p-3 rounded-xl mb-2 hover:bg-slate-600 flex justify-between items-center active:scale-95 transition text-white border border-slate-500"><span class="font-black">${s.name}</span><span class="text-sm font-bold text-slate-300">${amt}주</span></button>`;
-            });
-        }
-        const modalContent = document.getElementById('target-modal-content');
-        if(modalContent) modalContent.innerHTML = `<h4 class="text-center text-sm font-bold text-yellow-400 mb-3">${targetLabel}</h4>${stockOptionsHtml}`;
+        if (targetStocks.length === 0) { stockOptionsHtml = `<div class="text-center text-slate-400 font-bold py-6 bg-slate-900/50 rounded-xl mb-2 border border-slate-700">상대방이 보유한 주식이 없습니다.</div><button onclick="document.getElementById('target-modal').remove()" class="w-full bg-slate-600 p-3 rounded-xl font-bold active:scale-95 transition text-white shadow-md">돌아가기</button>`; } 
+        else { targetStocks.forEach(([sId, amt]) => { const s = roomState.stocks.find(x => x.id === sId); if(s) stockOptionsHtml += `<button onclick="window.confirmUseItem('${itemId}', ${itemIdx}, '${targetId}', '${sId}')" class="w-full bg-slate-700 p-3 rounded-xl mb-2 hover:bg-slate-600 flex justify-between items-center active:scale-95 transition text-white border border-slate-500"><span class="font-black">${s.name}</span><span class="text-sm font-bold text-slate-300">${amt}주</span></button>`; }); }
+        const modalContent = document.getElementById('target-modal-content'); if(modalContent) modalContent.innerHTML = `<h4 class="text-center text-sm font-bold text-yellow-400 mb-3">${targetLabel}</h4>${stockOptionsHtml}`;
     };
 
     window.confirmUseItem = (itemId, itemIdx, targetId, stockId = null) => {
-        const m = document.getElementById('target-modal'); if (m) m.remove();
-        sendPlayerAction({ type: 'USE_ITEM', uid: myUid, itemId: itemId, itemIdx: itemIdx, targetId: targetId, stockId: stockId });
+        const m = document.getElementById('target-modal'); if (m) m.remove(); sendPlayerAction({ type: 'USE_ITEM', uid: myUid, itemId: itemId, itemIdx: itemIdx, targetId: targetId, stockId: stockId });
     };
 
     window.showCustomPopup = (title, desc, icon, bgClass, freezeMs = 0) => {
-        const container = document.getElementById('modal-container'); 
-        const popupId = 'popup-' + Date.now() + Math.floor(Math.random()*1000);
-        if(freezeMs === 0) container.innerHTML = ''; 
-        let isFrozen = freezeMs > 0;
+        const container = document.getElementById('modal-container'); const popupId = 'popup-' + Date.now() + Math.floor(Math.random()*1000);
+        if(freezeMs === 0) container.innerHTML = ''; let isFrozen = freezeMs > 0;
         let closeBtnHtml = isFrozen ? `<div id="popup-timer-${popupId}" class="text-white font-bold mt-6 bg-black/30 py-3 px-6 rounded-xl border border-white/20 shadow-inner">${(freezeMs/1000).toFixed(1)}초 후 닫기 가능</div>` : `<button onclick="document.getElementById('${popupId}').remove()" class="mt-6 bg-black/40 hover:bg-black/60 text-white font-bold py-3 px-6 rounded-xl w-full border border-white/30 transition shadow-lg active:scale-95">확인</button>`;
         const html = `<div id="${popupId}" class="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm fade-in px-4" ${!isFrozen ? `onclick="this.remove()"` : ''}><div class="${bgClass} p-8 rounded-3xl text-center text-white border-2 border-white/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-sm transform popup-anim flex flex-col items-center" onclick="event.stopPropagation()"><div class="text-7xl mb-4 drop-shadow-xl animate-bounce">${icon}</div><h3 class="font-black text-2xl mb-3 drop-shadow-md text-white">${title}</h3><p class="font-bold text-lg text-white/90 leading-tight whitespace-pre-line">${desc}</p>${closeBtnHtml}</div></div>`;
         container.insertAdjacentHTML('beforeend', html);
-        if (isFrozen) {
-            window.vibrateDevice([100, 100, 100]); 
-            let remaining = freezeMs;
-            const inter = setInterval(() => {
-                remaining -= 100; 
-                const timerEl = document.getElementById(`popup-timer-${popupId}`);
-                if(timerEl) timerEl.innerText = `${(remaining/1000).toFixed(1)}초 후 닫기 가능`;
-                if (remaining <= 0) {
-                    clearInterval(inter); 
-                    const pEl = document.getElementById(popupId);
-                    if(pEl) { 
-                        pEl.setAttribute('onclick', 'this.remove()'); 
-                        if(timerEl) timerEl.outerHTML = `<button onclick="document.getElementById('${popupId}').remove()" class="mt-6 bg-black/40 hover:bg-black/60 text-white font-bold py-3 px-6 rounded-xl w-full border border-white/30 fade-in transition shadow-lg active:scale-95">확인 (닫기)</button>`; 
-                    }
-                }
-            }, 100);
-        }
+        if (isFrozen) { window.vibrateDevice([100, 100, 100]); let remaining = freezeMs; const inter = setInterval(() => { remaining -= 100; const timerEl = document.getElementById(`popup-timer-${popupId}`); if(timerEl) timerEl.innerText = `${(remaining/1000).toFixed(1)}초 후 닫기 가능`; if (remaining <= 0) { clearInterval(inter); const pEl = document.getElementById(popupId); if(pEl) { pEl.setAttribute('onclick', 'this.remove()'); if(timerEl) timerEl.outerHTML = `<button onclick="document.getElementById('${popupId}').remove()" class="mt-6 bg-black/40 hover:bg-black/60 text-white font-bold py-3 px-6 rounded-xl w-full border border-white/30 fade-in transition shadow-lg active:scale-95">확인 (닫기)</button>`; } } }, 100); }
     };
 
     window.toggleChat = () => { const panel = document.getElementById('chat-panel'); if (panel) panel.classList.toggle('chat-open'); };
     window.sendChat = () => { const input = document.getElementById('chat-input'); const text = input.value.trim(); if (text) { sendPlayerAction({ type: 'CHAT', uid: myUid, text: text }); input.value = ''; } };
 
     let lastEmojiTime = 0;
-    window.sendEmoji = (emj) => {
-        if(Date.now() - lastEmojiTime < 1000) return window.showToast('이모티콘 쿨타임 (1초)', '⏳');
-        lastEmojiTime = Date.now(); sendPlayerAction({ type: 'EMOJI', uid: myUid, emoji: emj });
-    };
+    window.sendEmoji = (emj) => { if(Date.now() - lastEmojiTime < 1000) return window.showToast('이모티콘 쿨타임 (1초)', '⏳'); lastEmojiTime = Date.now(); sendPlayerAction({ type: 'EMOJI', uid: myUid, emoji: emj }); };
 
     window.updateChatUI = () => {
         const chats = roomState.chats || []; if (chats.length < lastChatLength) lastChatLength = 0;
@@ -445,83 +404,58 @@
         if (hud && chats.length > lastChatLength && roomState.status === 'playing') {
             for (let i = lastChatLength; i < chats.length; i++) {
                 const msg = chats[i]; const isMe = msg.uid === myUid; const msgEl = document.createElement('div');
+                let p = players.find(x => x.id === msg.uid); let emjHtml = p && p.equippedEmoji ? window.getEmojiHTML(p.equippedEmoji) : '';
                 msgEl.className = `inline-block px-4 py-2 rounded-2xl text-xs md:text-sm font-bold shadow-[0_4px_15px_rgba(0,0,0,0.5)] max-w-[90%] break-words fade-in-up pointer-events-auto cursor-pointer ${isMe ? 'bg-indigo-600/95 text-white self-end' : 'bg-slate-800/95 text-slate-100 border border-slate-600/80'} backdrop-blur-md transition-all duration-500 ease-out z-[90]`;
                 msgEl.onclick = function(e) { e.stopPropagation(); this.style.opacity = '0'; setTimeout(() => this.remove(), 300); }; 
-                msgEl.innerHTML = `<span class="${isMe ? 'hidden' : 'text-yellow-400 text-[10px] md:text-xs mr-1.5'}">${msg.name}</span><br class="${isMe ? 'hidden' : ''}">${msg.text}`;
-                hud.appendChild(msgEl); hud.scrollTop = hud.scrollHeight;
-                setTimeout(() => { msgEl.style.opacity = '0'; msgEl.style.transform = 'translateY(-10px)'; setTimeout(() => msgEl.remove(), 500); }, 5000);
+                msgEl.innerHTML = `<span class="${isMe ? 'hidden' : 'text-yellow-400 text-[10px] md:text-xs mr-1.5 flex items-center mb-0.5'}">${emjHtml}${msg.name}</span><span class="${isMe ? 'hidden' : 'block'}"></span>${msg.text}`;
+                hud.appendChild(msgEl); hud.scrollTop = hud.scrollHeight; setTimeout(() => { msgEl.style.opacity = '0'; msgEl.style.transform = 'translateY(-10px)'; setTimeout(() => msgEl.remove(), 500); }, 5000);
             }
         }
-        lastChatLength = chats.length;
-        const c = document.getElementById('chat-messages'); if(!c) return;
-        const chatHtml = chats.map(msg => `<div class="text-sm ${msg.uid === myUid ? 'flex flex-col items-end' : 'flex flex-col items-start'} fade-in"><span class="text-[10px] text-slate-400 font-bold mb-0.5 ml-1">${msg.name}</span><div class="inline-block px-4 py-2.5 rounded-2xl ${msg.uid === myUid ? 'bg-indigo-600 text-white rounded-tr-none shadow-[0_4px_10px_rgba(79,70,229,0.3)]' : 'bg-slate-700 text-slate-100 rounded-tl-none border border-slate-600 shadow-md'} max-w-[85%] break-words text-left font-bold text-sm">${msg.text}</div></div>`).join('');
+        lastChatLength = chats.length; const c = document.getElementById('chat-messages'); if(!c) return;
+        const chatHtml = chats.map(msg => {
+            let p = players.find(x => x.id === msg.uid); let emjHtml = p && p.equippedEmoji ? window.getEmojiHTML(p.equippedEmoji) : '';
+            return `<div class="text-sm ${msg.uid === myUid ? 'flex flex-col items-end' : 'flex flex-col items-start'} fade-in"><span class="text-[10px] text-slate-400 font-bold mb-0.5 ml-1 flex items-center">${emjHtml}${msg.name}</span><div class="inline-block px-4 py-2.5 rounded-2xl ${msg.uid === myUid ? 'bg-indigo-600 text-white rounded-tr-none shadow-[0_4px_10px_rgba(79,70,229,0.3)]' : 'bg-slate-700 text-slate-100 rounded-tl-none border border-slate-600 shadow-md'} max-w-[85%] break-words text-left font-bold text-sm">${msg.text}</div></div>`;
+        }).join('');
         if (c.dataset.lastHtml !== chatHtml) { const isScrolledToBottom = c.scrollHeight - c.clientHeight <= c.scrollTop + 20; c.innerHTML = chatHtml; c.dataset.lastHtml = chatHtml; if(isScrolledToBottom) setTimeout(() => c.scrollTop = c.scrollHeight, 50); }
     };
 
     const handleChatVisibility = () => {
         const chatPanel = document.getElementById('chat-panel'); const chatFab = document.getElementById('chat-fab'); const miniHud = document.getElementById('mini-chat-hud');
-        if(chatPanel && chatFab && miniHud) {
-            if (roomState.status === 'playing') { if (currentRole === 'player') chatFab.classList.remove('hidden'); miniHud.classList.remove('hidden'); } 
-            else { chatFab.classList.add('hidden'); miniHud.classList.add('hidden'); chatPanel.classList.remove('chat-open'); }
-        }
+        if(chatPanel && chatFab && miniHud) { if (roomState.status === 'playing') { if (currentRole === 'player') chatFab.classList.remove('hidden'); miniHud.classList.remove('hidden'); } else { chatFab.classList.add('hidden'); miniHud.classList.add('hidden'); chatPanel.classList.remove('chat-open'); } }
     };
 
     const getFin = (uid) => {
-        if (roomState.mode === 'team') {
-            const p = players.find(x => x.id === uid);
-            if(p && p.teamId) { const team = roomState.teams.find(t => t.id === p.teamId); if(team) return team; }
-        }
+        if (roomState.mode === 'team') { const p = players.find(x => x.id === uid); if(p && p.teamId) { const team = roomState.teams.find(t => t.id === p.teamId); if(team) return team; } }
         return players.find(x => x.id === uid) || { cash: 0, portfolio: {}, avgPrice: {}, shieldCount: 0, delistedCost: 0 };
     };
 
     const getRankings = () => {
         if (roomState.mode === 'team') {
-            return roomState.teams.map(t => {
-                let ast = t.cash; Object.entries(t.portfolio || {}).forEach(([k,v]) => { const s = roomState.stocks.find(x=>x.id===k); if(s) ast += s.price * v; });
-                return { id: t.id, name: t.name, ast: ast, members: t.members, fin: t };
-            }).sort((a,b) => b.ast - a.ast);
+            return roomState.teams.map(t => { let ast = t.cash; Object.entries(t.portfolio || {}).forEach(([k,v]) => { const s = roomState.stocks.find(x=>x.id===k); if(s) ast += s.price * v; }); return { id: t.id, name: t.name, ast: ast, members: t.members, fin: t }; }).sort((a,b) => b.ast - a.ast);
         } else {
-            return players.map(p => {
-                let ast = p.cash; Object.entries(p.portfolio || {}).forEach(([k,v]) => { const s = roomState.stocks.find(x=>x.id===k); if(s) ast += s.price * v; });
-                return { id: p.id, name: p.name, ast: ast, fin: p };
-            }).sort((a,b) => b.ast - a.ast);
+            return players.map(p => { let ast = p.cash; Object.entries(p.portfolio || {}).forEach(([k,v]) => { const s = roomState.stocks.find(x=>x.id===k); if(s) ast += s.price * v; }); return { id: p.id, name: p.name, ast: ast, fin: p }; }).sort((a,b) => b.ast - a.ast);
         }
     };
 
     const isFrozen = () => { return myData && myData.frozenUntil && Date.now() < myData.frozenUntil; };
-    const checkFreezeState = () => {
-        if (!myData) return; const app = document.getElementById('app-container');
-        if (app) { if (isFrozen()) { app.style.filter = 'hue-rotate(180deg) saturate(200%)'; app.style.pointerEvents = 'none'; } else { app.style.filter = 'none'; app.style.pointerEvents = 'auto'; } }
-    };
+    const checkFreezeState = () => { const app = document.getElementById('app-container'); if (app) { if (isFrozen()) { app.style.filter = 'hue-rotate(180deg) saturate(200%)'; app.style.pointerEvents = 'none'; } else { app.style.filter = 'none'; app.style.pointerEvents = 'auto'; } } };
 
     const generateSparkline = (history, isPos) => {
         if (!history || history.length < 2) return '';
         const min = Math.min(...history); const max = Math.max(...history); const range = max - min === 0 ? 1 : max - min;
         const points = history.map((val, i) => { const x = (i / (history.length - 1)) * 100; const y = 30 - ((val - min) / range) * 30; return `${x},${y}`; }).join(' ');
-        const colorClass = isPos ? 'text-red-500' : 'text-blue-500';
-        return `<svg viewBox="0 -5 100 40" class="w-full h-12 md:h-16 sparkline-svg" preserveAspectRatio="none"><polyline points="${points}" fill="none" class="stroke-current ${colorClass}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+        return `<svg viewBox="0 -5 100 40" class="w-full h-12 md:h-16 sparkline-svg" preserveAspectRatio="none"><polyline points="${points}" fill="none" class="stroke-current ${isPos ? 'text-red-500' : 'text-blue-500'}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
     };
 
-    window.shuffleTeams = () => { 
-        if(currentRole !== 'host') return; 
-        if(confirm("팀을 무작위로 다시 섞으시겠습니까?")) { sendPlayerAction({ type: 'HOST_SHUFFLE_TEAMS' }); }
-    };
-    
-    window.playAgain = () => { 
-        if(currentRole !== 'host') return; 
-        if(confirm("현재 접속한 학생 그대로 게임을 다시 시작하시겠습니까? (모든 자산과 주식이 초기화됩니다)")) { sendPlayerAction({ type: 'HOST_PLAY_AGAIN' }); }
-    };
+    window.shuffleTeams = () => { if(currentRole !== 'host') return; if(confirm("팀을 무작위로 다시 섞으시겠습니까?")) { sendPlayerAction({ type: 'HOST_SHUFFLE_TEAMS' }); } };
+    window.playAgain = () => { if(currentRole !== 'host') return; if(confirm("현재 접속한 학생 그대로 게임을 다시 시작하시겠습니까? (모든 자산과 주식이 초기화됩니다)")) { sendPlayerAction({ type: 'HOST_PLAY_AGAIN' }); } };
 
     const handlePlayerAction = (data) => {
         let p = players.find(x => x.id === data.uid);
-        
         if (data.type === 'JOIN') {
             if (!p) {
                 p = { id: data.uid, name: data.name, equippedEmoji: data.equippedEmoji || '', cash: 5000, portfolio: {}, avgPrice: {}, items: [], dropBonus: 0, tradeCount: 0, correctAnswers: 0, wrongAnswers: 0, earnedFromQuiz: 0, buyAmount: 0, itemUseCount: 0, openBookCount: 0, blindedUntil: 0, shieldCount: 0, delistedCost: 0 };
-                if (roomState.mode === 'team') {
-                    let smallestTeam = roomState.teams.slice().sort((a,b) => a.members.length - b.members.length)[0];
-                    if (smallestTeam) { p.teamId = smallestTeam.id; smallestTeam.members.push(p.id); }
-                }
+                if (roomState.mode === 'team') { let smallestTeam = roomState.teams.slice().sort((a,b) => a.members.length - b.members.length)[0]; if (smallestTeam) { p.teamId = smallestTeam.id; smallestTeam.members.push(p.id); } }
                 players.push(p); roomState.chats.push({ uid: 'system', name: '시스템', text: `${data.name}님이 입장하셨습니다.` }); 
             } else { p.name = data.name; p.equippedEmoji = data.equippedEmoji || ''; }
             hostBroadcast(); return;
@@ -617,12 +551,9 @@
             else if (data.itemId === 'i8') { fin.cash += 20000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '금고에 현금 20,000원을 획득했습니다!' }); } 
             else if (data.itemId === 'i9') { fin.cash += 5000; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: '금고에 현금 5,000원을 획득했습니다!' }); } 
             else if (data.itemId === 'i19' || data.itemId === 'i20') {
-                let outcome = NEWS_EVENTS[roomState.nextEventIndex].results[roomState.nextOutcomeIndex];
-                let downStocks = []; let upStocks = [];
-                if(outcome.impact < 0 && outcome.targets) downStocks.push(...outcome.targets);
-                if(outcome.impact > 0 && outcome.targets) upStocks.push(...outcome.targets);
-                if(outcome.down_impact < 0 && outcome.down_targets) downStocks.push(...outcome.down_targets);
-                if(outcome.down_impact > 0 && outcome.down_targets) upStocks.push(...outcome.down_targets);
+                let outcome = NEWS_EVENTS[roomState.nextEventIndex].results[roomState.nextOutcomeIndex]; let downStocks = []; let upStocks = [];
+                if(outcome.impact < 0 && outcome.targets) downStocks.push(...outcome.targets); if(outcome.impact > 0 && outcome.targets) upStocks.push(...outcome.targets);
+                if(outcome.down_impact < 0 && outcome.down_targets) downStocks.push(...outcome.down_targets); if(outcome.down_impact > 0 && outcome.down_targets) upStocks.push(...outcome.down_targets);
                 if (data.itemId === 'i19') { let names = downStocks.map(id => roomState.stocks.find(s=>s.id===id).name).join(', '); if(!names) names = '해당 없음 (폭락장 면면 특정 불가)'; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📉 다음 폭락 확정 종목:\n[${names}]` }); } 
                 else { let names = upStocks.map(id => roomState.stocks.find(s=>s.id===id).name).join(', '); if(!names) names = '해당 없음 (폭등장 면면 특정 불가)'; sendToPlayer(data.uid, { type: 'EVENT_ITEM_EFFECT', msg: `📈 다음 폭등 확정 종목:\n[${names}]` }); }
             } 
@@ -709,6 +640,13 @@
         if(roomListenerUnsubscribe) { roomListenerUnsubscribe(); roomListenerUnsubscribe = null; }
         lastChatLength = 0; handleChatVisibility();
         
+        window.userTokens = parseInt(localStorage.getItem('stockedu_tokens')) || 0;
+        
+        // 👇👇👇 여기에 아래 두 줄을 추가해 주세요. 👇👇👇
+        window.userCollection = JSON.parse(localStorage.getItem('stockedu_collection')) || [];
+        window.myEquippedEmoji = localStorage.getItem('stockedu_equipped') || '';
+        // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
+
         let rejoinHtml = '';
         if (savedSession) { rejoinHtml = `<div class="mt-4 bg-slate-800/80 p-4 rounded-xl border border-indigo-500/50 text-center shadow-lg w-full"><p class="text-sm text-slate-300 mb-2">이전 접속 기록이 발견되었습니다.</p><button onclick="window.rejoinRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition active:scale-95">방 [${savedSession.roomCode}] - ${savedSession.name} 님으로 재접속</button><button onclick="window.clearSession()" class="mt-3 text-xs text-slate-500 hover:text-slate-300 underline">접속 기록 초기화</button></div>`; }
         
@@ -744,13 +682,7 @@
     };
 
     window.createRoom = async () => { 
-        // 화면이 지워지기 전에 선생님이 입력한 설정값 먼저 저장 (시간 버그 해결!)
-        window.tempGameConfig = {
-            duration: parseInt(document.getElementById('game-duration')?.value || 15) * 60 * 1000,
-            mode: document.getElementById('game-mode-val')?.value || 'indiv',
-            teamCount: parseInt(document.getElementById('team-count')?.value || 4)
-        };
-
+        window.tempGameConfig = { duration: parseInt(document.getElementById('game-duration')?.value || 15) * 60 * 1000, mode: document.getElementById('game-mode-val')?.value || 'indiv', teamCount: parseInt(document.getElementById('team-count')?.value || 4) };
         document.getElementById('app').innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-4"><div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div><div class="text-xl font-bold animate-pulse">방 개설 준비 중...</div></div>`;
         const fileInput = document.getElementById('custom-word-file'); let wordsToUse = [];
         if (fileInput && fileInput.files.length > 0) {
@@ -772,7 +704,6 @@
         if(!window.fbDb) return alert("서버 연동 초기화 중입니다. 1~2초 후 다시 눌러주세요!");
         roomCode = Math.floor(1000 + Math.random() * 9000).toString();
         
-        // 저장해둔 설정값 불러오기
         const durationMs = window.tempGameConfig ? window.tempGameConfig.duration : 15 * 60 * 1000;
         const mode = window.tempGameConfig ? window.tempGameConfig.mode : 'indiv'; 
         const tCount = window.tempGameConfig ? window.tempGameConfig.teamCount : 4;
@@ -786,16 +717,11 @@
         
         document.getElementById('app').innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-4"><div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div><div class="text-xl font-bold animate-pulse">방 개설 중...</div></div>`;
         
-        window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/state`), roomState);
-        window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/players`), players);
-        
-        window.fbOnDisconnect(window.fbRef(window.fbDb, `rooms/${roomCode}`)).remove();
+        window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/state`), roomState); window.fbSet(window.fbRef(window.fbDb, `rooms/${roomCode}/players`), players); window.fbOnDisconnect(window.fbRef(window.fbDb, `rooms/${roomCode}`)).remove();
 
         window.fbOnChildAdded(window.fbRef(window.fbDb, `rooms/${roomCode}/actions`), (snapshot) => {
-            const action = snapshot.val();
-            if(action) { handlePlayerAction(action); window.fbRemove(window.fbRef(window.fbDb, `rooms/${roomCode}/actions/${snapshot.key}`)); }
+            const action = snapshot.val(); if(action) { handlePlayerAction(action); window.fbRemove(window.fbRef(window.fbDb, `rooms/${roomCode}/actions/${snapshot.key}`)); }
         });
-
         setTimeout(renderLobby, 500); 
     };
 
@@ -824,16 +750,16 @@
             if (roomState.mode === 'team') {
                 grid.innerHTML = roomState.teams.map(t => { 
                     let membersHtml = t.members.map(mid => {
-                        let p = players.find(x=>x.id===mid); let emj = p && p.equippedEmoji ? `<span class="mr-1">${p.equippedEmoji}</span>` : '';
-                        return `<span class="bg-slate-700 px-2 py-1 rounded text-xs text-white mr-1 mb-1 inline-block">${emj}${p ? p.name : ''}</span>`;
+                        let p = players.find(x=>x.id===mid); let emjHtml = p && p.equippedEmoji ? window.getEmojiHTML(p.equippedEmoji) : '';
+                        return `<span class="bg-slate-700 px-2 py-1 rounded text-xs text-white mr-1 mb-1 inline-flex items-center">${emjHtml}${p ? p.name : ''}</span>`;
                     }).join(''); 
                     if(!membersHtml) membersHtml = '<span class="text-slate-500 text-xs">대기 중...</span>'; 
                     return `<div class="w-full bg-slate-800 p-3 rounded-xl mb-3 border border-slate-600 shadow-md"><div class="font-black text-yellow-400 mb-2 text-sm border-b border-slate-600 pb-1">${t.name} <span class="text-slate-400 ml-1">(${t.members.length}명)</span></div><div class="flex flex-wrap">${membersHtml}</div></div>`; 
                 }).join('');
             } else { 
                 grid.innerHTML = players.map(p => {
-                    let emj = p.equippedEmoji ? `<span class="mr-1 text-lg">${p.equippedEmoji}</span>` : '';
-                    return `<div class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm font-bold flex items-center shadow-md"><div class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></div>${emj}${p.name}</div>`;
+                    let emjHtml = p.equippedEmoji ? window.getEmojiHTML(p.equippedEmoji) : '';
+                    return `<div class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm font-bold flex items-center shadow-md"><div class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse shrink-0"></div>${emjHtml}${p.name}</div>`;
                 }).join(''); 
             }
         }
@@ -1045,7 +971,8 @@
         else if (data.type === 'EVENT_GAME_END_TOKENS') {
             let myReward = data.rewards[myUid] || 0;
             if(myReward > 0) {
-                window.userTokens += myReward; localStorage.setItem('stockedu_tokens', window.userTokens);
+                window.userTokens = (parseInt(localStorage.getItem('stockedu_tokens')) || 0) + myReward;
+                localStorage.setItem('stockedu_tokens', window.userTokens);
                 setTimeout(() => { window.playSound('coin'); showCustomPopup("🎁 게임 보상 획득!", `수고하셨습니다!\n플레이 및 등수 보상으로\n가챠 토큰 ${myReward}개를 획득했습니다!`, "🪙", "bg-yellow-600"); }, 1500); 
             }
         }
@@ -1064,42 +991,26 @@
             const newState = snapshot.val();
             if(!newState || newState.status === 'destroyed') {
                 if (joinTimeout) { clearTimeout(joinTimeout); joinTimeout = null; }
-                if (currentRole === 'player') {
-                    showCustomPopup("방 종료", "호스트가 방을 닫아 메인 화면으로 돌아갑니다.", "🚪", "bg-slate-700");
-                    setTimeout(() => window.renderHome(), 2500);
-                }
+                if (currentRole === 'player') { showCustomPopup("방 종료", "호스트가 방을 닫아 메인 화면으로 돌아갑니다.", "🚪", "bg-slate-700"); setTimeout(() => window.renderHome(), 2500); }
                 return;
             }
-            const prevStatus = roomState.status; const prevPhase = roomState.endPhase;
-            roomState = newState;
+            const prevStatus = roomState.status; const prevPhase = roomState.endPhase; roomState = newState;
             if(myData) handleStateTransitions(prevStatus, prevPhase);
         });
 
-        // [핵심 해결] 무한 '접속 중...' 문제: UI를 그리는 함수 강제 호출 추가
         const playersRef = window.fbRef(window.fbDb, `rooms/${roomCode}/players`);
         window.fbOnValue(playersRef, (snapshot) => {
-            players = snapshot.val() || []; 
-            const wasNull = !myData;
-            myData = players.find(p => p.id === myUid);
+            players = snapshot.val() || []; const wasNull = !myData; myData = players.find(p => p.id === myUid);
             if(myData) { 
                 if (joinTimeout) { clearTimeout(joinTimeout); joinTimeout = null; }
-                // 처음에 데이터를 받았을 땐 UI를 새로 그려주도록 null 값을 넘겨 트리거를 발동시킴
-                if(wasNull) {
-                    handleStateTransitions(null, null);
-                } else {
-                    if(roomState.status === 'lobby') updateLobbyPlayers(); 
-                    else if(roomState.status === 'playing') window.updatePlayerGameUI(); 
-                }
+                if(wasNull) { handleStateTransitions(null, null); } 
+                else { if(roomState.status === 'lobby') updateLobbyPlayers(); else if(roomState.status === 'playing') window.updatePlayerGameUI(); }
             }
         });
 
-        window.fbOnChildAdded(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${myUid}`), (snapshot) => {
-            handleEvent(snapshot.val()); window.fbRemove(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${myUid}/${snapshot.key}`));
-        });
-
+        window.fbOnChildAdded(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${myUid}`), (snapshot) => { handleEvent(snapshot.val()); window.fbRemove(window.fbRef(window.fbDb, `rooms/${roomCode}/events_personal/${myUid}/${snapshot.key}`)); });
         window.fbOnChildAdded(window.fbRef(window.fbDb, `rooms/${roomCode}/events_global`), (snapshot) => { handleEvent(snapshot.val()); });
-
-        setTimeout(() => { if(!myData) sendPlayerAction({ type: 'JOIN', uid: myUid, name: n, equippedEmoji: window.myEquippedEmoji || '' }); }, 500);
+        setTimeout(() => { sendPlayerAction({ type: 'JOIN', uid: myUid, name: n, equippedEmoji: window.myEquippedEmoji || '' }); }, 500);
     };
 
     const handleAttacked = (data) => {
@@ -1131,12 +1042,14 @@
 
             const renderRankItem = (r, idx) => {
                 const isMe = r.id === myFin.id; const rankColor = idx === 0 ? 'text-yellow-400' : (idx === 1 ? 'text-slate-300' : (idx === 2 ? 'text-orange-400' : 'text-slate-400')); const bgClass = isMe ? 'bg-indigo-900/60 border-indigo-500' : 'bg-slate-800 border-slate-700';
-                let emj = r.fin && r.fin.equippedEmoji ? `<span class="mr-1">${r.fin.equippedEmoji}</span>` : '';
-                return `<div class="flex justify-between items-center p-2 rounded-lg border ${bgClass} shadow-sm text-xs md:text-sm"><div class="flex items-center gap-2 truncate pr-2"><span class="font-black w-4 md:w-5 text-center ${rankColor}">${idx + 1}</span><span class="font-bold text-white truncate ${isMe ? 'text-indigo-300' : ''}">${emj}${r.name}</span></div><span class="font-black text-emerald-400 shrink-0">${r.ast.toLocaleString()}원</span></div>`;
+                let emjHtml = ''; if(roomState.mode === 'indiv') { emjHtml = r.fin && r.fin.equippedEmoji ? window.getEmojiHTML(r.fin.equippedEmoji) : ''; }
+                return `<div class="flex justify-between items-center p-2 rounded-lg border ${bgClass} shadow-sm text-xs md:text-sm"><div class="flex items-center gap-2 truncate pr-2"><span class="font-black w-4 md:w-5 text-center ${rankColor}">${idx + 1}</span><span class="font-bold text-white flex items-center truncate ${isMe ? 'text-indigo-300' : ''}">${emjHtml}${r.name}</span></div><span class="font-black text-emerald-400 shrink-0">${r.ast.toLocaleString()}원</span></div>`;
             };
 
             let rankHtml = top10.map((r, i) => renderRankItem(r, i)).join('');
-            let myRankHtml = `<div class="flex justify-between items-center p-2 md:p-3 rounded-lg border border-indigo-400 bg-indigo-600/30 shadow-md text-xs md:text-sm mt-1"><div class="flex items-center gap-2 truncate pr-2"><span class="font-black w-5 md:w-6 text-center text-yellow-300">${myRankStr}</span><span class="font-black text-white truncate text-indigo-200">${myLabel}</span></div><span class="font-black text-emerald-400 shrink-0">${myRankInfo.ast.toLocaleString()}원</span></div>`;
+            let myEmjHtml = myFin.equippedEmoji ? window.getEmojiHTML(myFin.equippedEmoji) : '';
+            let nameStr = roomState.mode === 'team' ? myLabel : `나 (<span class="inline-flex items-center ml-1">${myEmjHtml}${myRankInfo.name}</span>)`;
+            let myRankHtml = `<div class="flex justify-between items-center p-2 md:p-3 rounded-lg border border-indigo-400 bg-indigo-600/30 shadow-md text-xs md:text-sm mt-1"><div class="flex items-center gap-2 truncate pr-2"><span class="font-black w-5 md:w-6 text-center text-yellow-300">${myRankStr}</span><span class="font-black text-white flex items-center truncate text-indigo-200">${nameStr}</span></div><span class="font-black text-emerald-400 shrink-0">${myRankInfo.ast.toLocaleString()}원</span></div>`;
 
             const desktopList = document.getElementById('desktop-ranking-list'); const desktopMyRank = document.getElementById('desktop-my-rank');
             if(desktopList && desktopList.dataset.lastHtml !== rankHtml) { desktopList.innerHTML = rankHtml; desktopList.dataset.lastHtml = rankHtml; }
@@ -1360,9 +1273,9 @@
         let sorted = getRankings();
         const rankHtml = sorted.map((r,i) => {
             let memberHtml = '';
-            if (roomState.mode === 'team') { memberHtml = `<div class="text-xs text-slate-400 font-normal mt-0.5">${r.members.map(mid => { let p = players.find(x=>x.id===mid); let emj = p && p.equippedEmoji ? p.equippedEmoji : ''; return `${emj}${p ? p.name : ''}`; }).join(', ')}</div>`; }
-            let hostEmj = roomState.mode === 'indiv' && r.fin && r.fin.equippedEmoji ? `<span class="mr-1">${r.fin.equippedEmoji}</span>` : '';
-            return `<div class="flex items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md shrink-0"><div class="w-10 h-10 rounded-full ${i===0?'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-[0_0_10px_rgba(234,179,8,0.6)]':(i===1?'bg-gradient-to-br from-slate-300 to-slate-500 text-white':(i===2?'bg-gradient-to-br from-orange-400 to-orange-600 text-white':'bg-slate-700 text-slate-300'))} flex items-center justify-center font-black text-xl mr-4">${i+1}</div><div class="flex-1 min-w-0"><div class="font-black text-xl text-white truncate">${hostEmj}${r.name}</div>${memberHtml}</div><div class="text-green-400 font-black text-2xl shrink-0 ml-3">${r.ast.toLocaleString()}원</div></div>`;
+            if (roomState.mode === 'team') { memberHtml = `<div class="text-xs text-slate-400 font-normal mt-1 flex flex-wrap gap-1">${r.members.map(mid => { let p = players.find(x=>x.id===mid); let emjHtml = p && p.equippedEmoji ? window.getEmojiHTML(p.equippedEmoji) : ''; return `<span class="inline-flex items-center">${emjHtml}${p ? p.name : ''}</span>`; }).join('')}</div>`; }
+            let hostEmj = roomState.mode === 'indiv' && r.fin && r.fin.equippedEmoji ? window.getEmojiHTML(r.fin.equippedEmoji) : '';
+            return `<div class="flex items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md shrink-0"><div class="w-10 h-10 rounded-full ${i===0?'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-[0_0_10px_rgba(234,179,8,0.6)]':(i===1?'bg-gradient-to-br from-slate-300 to-slate-500 text-white':(i===2?'bg-gradient-to-br from-orange-400 to-orange-600 text-white':'bg-slate-700 text-slate-300'))} flex items-center justify-center font-black text-xl mr-4">${i+1}</div><div class="flex-1 min-w-0"><div class="font-black text-xl text-white flex items-center truncate">${hostEmj}${r.name}</div>${memberHtml}</div><div class="text-green-400 font-black text-2xl shrink-0 ml-3">${r.ast.toLocaleString()}원</div></div>`;
         }).join('');
         const rankList = document.getElementById('host-rank-list'); if(rankList && rankList.dataset.lastHtml !== rankHtml) { rankList.innerHTML = rankHtml; rankList.dataset.lastHtml = rankHtml; }
 
@@ -1373,7 +1286,6 @@
         const marketList = document.getElementById('host-market-list'); if(marketList && marketList.dataset.lastHtml !== marketHtml) { marketList.innerHTML = marketHtml; marketList.dataset.lastHtml = marketHtml; }
     };
 
-    // [핵심 복구] 주식 요약 화면
     window.renderMarketSummary = () => {
         let stocksCalc = roomState.stocks.map(s => { 
             const initial = s.history.length > 0 ? s.history[0] : s.price; 
@@ -1400,26 +1312,24 @@
         document.getElementById('app').innerHTML = html;
     };
 
-    // [핵심 복구] 호스트 랭킹 화면 전환 함수
     window.hostGoRankings = () => { 
         if(currentRole !== 'host') return; 
         sendPlayerAction({type: 'HOST_NEXT_PHASE'}); 
     };
 
-    // [핵심 복구] 화려한 특별 시상식, 포디움 화면
     window.renderEndScreen = () => {
         let sortedRanks = getRankings(); if(sortedRanks.length===0) return document.getElementById('app').innerHTML=`<div class="m-auto"><button onclick="window.renderHome()" class="bg-blue-600 px-4 py-2 rounded font-bold">돌아가기</button></div>`;
         let p1 = sortedRanks[0] || {name: '없음', ast: 0}; let p2 = sortedRanks[1] || {name: '없음', ast: 0}; let p3 = sortedRanks[2] || {name: '없음', ast: 0};
-        const getMemberStr = (r) => { if (roomState.mode === 'team' && r && r.members) { return `<div class="text-xs text-slate-200 mt-1 font-bold break-all opacity-80">${r.members.map(mid => players.find(p=>p.id===mid)?.name).join(', ')}</div>`; } return ''; };
+        const getMemberStr = (r) => { if (roomState.mode === 'team' && r && r.members) { return `<div class="text-xs text-slate-200 mt-1 font-bold break-all opacity-80">${r.members.map(mid => { let p=players.find(x=>x.id===mid); let emj = p&&p.equippedEmoji?window.getEmojiHTML(p.equippedEmoji):''; return `<span class="inline-flex items-center">${emj}${p?.name||''}</span>`}).join(', ')}</div>`; } return ''; };
 
         let awards = []; const activePlayers = players.filter(p => p.tradeCount > 0 || p.correctAnswers > 0);
         if (roomState.mode === 'team') {
-            const byQuiz = [...activePlayers].sort((a,b)=>(b.earnedFromQuiz||0)-(a.earnedFromQuiz||0))[0]; if(byQuiz && byQuiz.earnedFromQuiz > 0) awards.push({ t:"🎩 시드머니 캐리", d:"팀 퀴즈 수익 기여 1위", n:byQuiz.name, v:byQuiz.earnedFromQuiz.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500" });
-            const byBuy = [...activePlayers].sort((a,b)=>(b.buyAmount||0)-(a.buyAmount||0))[0]; if(byBuy && byBuy.buyAmount > 0) awards.push({ t:"💸 풀매수 장인", d:"팀 매수 금액 1위", n:byBuy.name, v:byBuy.buyAmount.toLocaleString()+'원', color: "text-red-400", bg: "border-red-500" });
-            const qK = [...activePlayers].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500" });
-            const itemK = [...activePlayers].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500" });
-            const tK = [...activePlayers].sort((a,b)=>(b.tradeCount||0)-(a.tradeCount||0))[0]; if(tK && tK.tradeCount>0) awards.push({ t:"⚡ 야수의 심장", d:"최다 거래 (단타 장인)", n:tK.name, v:tK.tradeCount+'회', color: "text-orange-400", bg: "border-orange-500" });
-            const wK = [...activePlayers].sort((a,b)=>(b.wrongAnswers||0)-(a.wrongAnswers||0))[0]; if(wK && wK.wrongAnswers>0) awards.push({ t:"🤡 찍기 장인", d:"오답 횟수 1위", n:wK.name, v:wK.wrongAnswers+'번', color: "text-slate-400", bg: "border-slate-500" });
+            const byQuiz = [...activePlayers].sort((a,b)=>(b.earnedFromQuiz||0)-(a.earnedFromQuiz||0))[0]; if(byQuiz && byQuiz.earnedFromQuiz > 0) awards.push({ t:"🎩 버스 기사", d:"팀 퀴즈 수익 기여 1위", n:byQuiz.name, v:byQuiz.earnedFromQuiz.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500", emj:byQuiz.equippedEmoji });
+            const byBuy = [...activePlayers].sort((a,b)=>(b.buyAmount||0)-(a.buyAmount||0))[0]; if(byBuy && byBuy.buyAmount > 0) awards.push({ t:"💸 풀매수 장인", d:"팀 매수 금액 1위", n:byBuy.name, v:byBuy.buyAmount.toLocaleString()+'원', color: "text-red-400", bg: "border-red-500", emj:byBuy.equippedEmoji });
+            const qK = [...activePlayers].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500", emj:qK.equippedEmoji });
+            const itemK = [...activePlayers].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500", emj:itemK.equippedEmoji });
+            const tK = [...activePlayers].sort((a,b)=>(b.tradeCount||0)-(a.tradeCount||0))[0]; if(tK && tK.tradeCount>0) awards.push({ t:"⚡ 야수의 심장", d:"최다 거래 (단타 장인)", n:tK.name, v:tK.tradeCount+'회', color: "text-orange-400", bg: "border-orange-500", emj:tK.equippedEmoji });
+            const wK = [...activePlayers].sort((a,b)=>(b.wrongAnswers||0)-(a.wrongAnswers||0))[0]; if(wK && wK.wrongAnswers>0) awards.push({ t:"🤡 미스터 트롤", d:"오답 횟수 1위", n:wK.name, v:wK.wrongAnswers+'번', color: "text-slate-400", bg: "border-slate-500", emj:wK.equippedEmoji });
         } else {
             let sortedIndiv = players.map(p=>{
                 let stockVal = 0; let totalCost = p.delistedCost || 0; 
@@ -1428,17 +1338,17 @@
             });
             const activeIndiv = sortedIndiv.filter(p => p.tradeCount > 0); const byReturn = [...activeIndiv].sort((a,b) => b.returnRate - a.returnRate);
             const maxStockP = [...sortedIndiv].sort((a,b) => b.stockVal - a.stockVal)[0];
-            if(maxStockP && maxStockP.stockVal > 0) awards.push({ t:"🎩 자산 버핏", d:"주식 자산 1위", n:maxStockP.name, v:maxStockP.stockVal.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500" });
-            if(byReturn.length > 0 && byReturn[0].returnRate > 0) awards.push({ t:"🚀 존버왕", d:"투자 수익률 1위", n:byReturn[0].name, v:`+${byReturn[0].returnRate.toFixed(1)}%`, color: "text-red-400", bg: "border-red-500" });
-            const qK = [...sortedIndiv].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500" });
-            const itemK = [...sortedIndiv].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500" });
-            const tK = [...sortedIndiv].sort((a,b)=>(b.tradeCount||0)-(a.tradeCount||0))[0]; if(tK && tK.tradeCount>0) awards.push({ t:"⚡ 야수의 심장", d:"최다 거래 (단타 장인)", n:tK.name, v:tK.tradeCount+'회', color: "text-orange-400", bg: "border-orange-500" });
-            if(byReturn.length > 0 && byReturn[byReturn.length-1].returnRate < 0) { const clown = byReturn[byReturn.length-1]; awards.push({ t:"🤡 올해의 광대", d:"투자 손실률 1위", n:clown.name, v:`${clown.returnRate.toFixed(1)}%`, color: "text-slate-400", bg: "border-slate-500" }); }
+            if(maxStockP && maxStockP.stockVal > 0) awards.push({ t:"🎩 대송 버핏", d:"주식 자산 1위", n:maxStockP.name, v:maxStockP.stockVal.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500", emj:maxStockP.equippedEmoji });
+            if(byReturn.length > 0 && byReturn[0].returnRate > 0) awards.push({ t:"🚀 주식 고수", d:"투자 수익률 1위", n:byReturn[0].name, v:`+${byReturn[0].returnRate.toFixed(1)}%`, color: "text-red-400", bg: "border-red-500", emj:byReturn[0].equippedEmoji });
+            const qK = [...sortedIndiv].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500", emj:qK.equippedEmoji });
+            const itemK = [...sortedIndiv].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500", emj:itemK.equippedEmoji });
+            const tK = [...sortedIndiv].sort((a,b)=>(b.tradeCount||0)-(a.tradeCount||0))[0]; if(tK && tK.tradeCount>0) awards.push({ t:"⚡ 야수의 심장", d:"최다 거래", n:tK.name, v:tK.tradeCount+'회', color: "text-orange-400", bg: "border-orange-500", emj:tK.equippedEmoji });
+            if(byReturn.length > 0 && byReturn[byReturn.length-1].returnRate < 0) { const clown = byReturn[byReturn.length-1]; awards.push({ t:"🤡 올해의 광대", d:"투자 손실률 1위", n:clown.name, v:`${clown.returnRate.toFixed(1)}%`, color: "text-slate-400", bg: "border-slate-500", emj:clown.equippedEmoji }); }
         }
 
         const hostBtnHtml = currentRole === 'host' 
             ? `<div class="flex flex-col md:flex-row gap-4 w-full mt-6"><button onclick="window.playAgain()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-4 md:py-5 rounded-2xl font-black shadow-lg transition active:scale-95 text-base md:text-lg border border-emerald-400"><i class="fas fa-redo mr-2"></i>같은 멤버로 다시하기</button><button onclick="window.renderHome()" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-4 md:py-5 rounded-2xl font-black shadow-lg transition active:scale-95 text-base md:text-lg border border-red-400"><i class="fas fa-bomb mr-2"></i>방 폭파하고 끝내기</button></div>` 
-            : `<button onclick="window.clearSession()" class="w-full mt-6 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-500 py-5 rounded-2xl font-black text-lg md:text-xl shadow-2xl active:scale-95 transition text-white shrink-0"><i class="fas fa-home mr-2"></i>접속 기록 초기화 후 처음 화면으로</button>`;
+            : `<button onclick="window.clearSession()" class="w-full mt-6 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-500 py-5 rounded-2xl font-black text-lg md:text-xl shadow-2xl active:scale-95 transition text-white shrink-0"><i class="fas fa-home mr-2"></i>처음 화면으로</button>`;
 
         document.getElementById('app').innerHTML = `
             <div class="p-4 max-w-6xl mx-auto w-full fade-in pt-6 h-full flex flex-col">
@@ -1446,18 +1356,18 @@
                 <div class="flex flex-col lg:flex-row gap-8 flex-grow overflow-hidden">
                     <div class="flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2 pb-4">
                         <div class="flex items-end justify-center gap-3 h-56 md:h-64 mt-4">
-                            <div class="flex flex-col items-center w-[30%] animate-[slideUp_0.8s_ease-out_0.3s_both]"><div class="text-xl md:text-2xl font-black truncate w-full text-center text-slate-200 px-1 drop-shadow-md">${p2.name}</div>${getMemberStr(p2)}<div class="w-full bg-gradient-to-b from-slate-300 to-slate-600 rounded-t-2xl h-28 md:h-32 flex flex-col items-center justify-start pt-3 shadow-[0_0_25px_rgba(148,163,184,0.4)] border-t border-slate-100 mt-2"><span class="text-4xl drop-shadow-md">🥈</span><span class="font-black text-slate-900 text-sm mt-2 px-1 break-all">${(p2.ast||0).toLocaleString()}원</span></div></div>
-                            <div class="flex flex-col items-center w-[35%] animate-[slideUp_0.8s_ease-out_0.9s_both] z-10"><div class="text-4xl animate-pulse mb-1 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]">👑</div><div class="text-2xl md:text-3xl font-black truncate w-full text-center text-yellow-400 px-1 drop-shadow-md">${p1.name}</div>${getMemberStr(p1)}<div class="w-full bg-gradient-to-b from-yellow-300 to-yellow-600 rounded-t-2xl h-40 md:h-48 flex flex-col items-center justify-start pt-4 shadow-[0_0_35px_rgba(234,179,8,0.6)] border-t border-yellow-100 mt-2"><span class="text-5xl drop-shadow-md">🥇</span><span class="font-black text-yellow-900 text-base mt-2 px-1 break-all">${(p1.ast||0).toLocaleString()}원</span></div></div>
-                            <div class="flex flex-col items-center w-[30%] animate-[slideUp_0.8s_ease-out_0s_both]"><div class="text-xl md:text-2xl font-black truncate w-full text-center text-orange-300 px-1 drop-shadow-md">${p3.name}</div>${getMemberStr(p3)}<div class="w-full bg-gradient-to-b from-orange-400 to-orange-700 rounded-t-2xl h-20 md:h-24 flex flex-col items-center justify-start pt-2 shadow-[0_0_20px_rgba(249,115,22,0.4)] border-t border-orange-200 mt-2"><span class="text-3xl drop-shadow-md">🥉</span><span class="font-black text-orange-900 text-xs mt-1 px-1 break-all">${(p3.ast||0).toLocaleString()}원</span></div></div>
+                            <div class="flex flex-col items-center w-[30%] animate-[slideUp_0.8s_ease-out_0.3s_both]"><div class="text-xl md:text-2xl font-black truncate w-full text-center text-slate-200 px-1 drop-shadow-md flex items-center justify-center">${p2.fin&&p2.fin.equippedEmoji?window.getEmojiHTML(p2.fin.equippedEmoji):''}${p2.name}</div>${getMemberStr(p2)}<div class="w-full bg-gradient-to-b from-slate-300 to-slate-600 rounded-t-2xl h-28 md:h-32 flex flex-col items-center justify-start pt-3 shadow-[0_0_25px_rgba(148,163,184,0.4)] border-t border-slate-100 mt-2"><span class="text-4xl drop-shadow-md">🥈</span><span class="font-black text-slate-900 text-sm mt-2 px-1 break-all">${(p2.ast||0).toLocaleString()}원</span></div></div>
+                            <div class="flex flex-col items-center w-[35%] animate-[slideUp_0.8s_ease-out_0.9s_both] z-10"><div class="text-4xl animate-pulse mb-1 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]">👑</div><div class="text-2xl md:text-3xl font-black truncate w-full text-center text-yellow-400 px-1 drop-shadow-md flex items-center justify-center">${p1.fin&&p1.fin.equippedEmoji?window.getEmojiHTML(p1.fin.equippedEmoji):''}${p1.name}</div>${getMemberStr(p1)}<div class="w-full bg-gradient-to-b from-yellow-300 to-yellow-600 rounded-t-2xl h-40 md:h-48 flex flex-col items-center justify-start pt-4 shadow-[0_0_35px_rgba(234,179,8,0.6)] border-t border-yellow-100 mt-2"><span class="text-5xl drop-shadow-md">🥇</span><span class="font-black text-yellow-900 text-base mt-2 px-1 break-all">${(p1.ast||0).toLocaleString()}원</span></div></div>
+                            <div class="flex flex-col items-center w-[30%] animate-[slideUp_0.8s_ease-out_0s_both]"><div class="text-xl md:text-2xl font-black truncate w-full text-center text-orange-300 px-1 drop-shadow-md flex items-center justify-center">${p3.fin&&p3.fin.equippedEmoji?window.getEmojiHTML(p3.fin.equippedEmoji):''}${p3.name}</div>${getMemberStr(p3)}<div class="w-full bg-gradient-to-b from-orange-400 to-orange-700 rounded-t-2xl h-20 md:h-24 flex flex-col items-center justify-start pt-2 shadow-[0_0_20px_rgba(249,115,22,0.4)] border-t border-orange-200 mt-2"><span class="text-3xl drop-shadow-md">🥉</span><span class="font-black text-orange-900 text-xs mt-1 px-1 break-all">${(p3.ast||0).toLocaleString()}원</span></div></div>
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            ${awards.map(a=>`<div class="bg-glass p-4 rounded-2xl text-center border ${a.bg} shadow-xl transform transition hover:scale-105"><div class="text-base font-black ${a.color} mb-1 drop-shadow-sm">${a.t}</div><div class="text-[11px] font-bold text-slate-300 mb-2 truncate">${a.d}</div><div class="text-lg font-black text-white bg-slate-800/80 rounded-xl py-2 mb-2 truncate px-2 border border-slate-600 shadow-inner">${a.n}</div><div class="text-emerald-400 font-black text-sm drop-shadow-md">${a.v}</div></div>`).join('')}
+                            ${awards.map(a=>`<div class="bg-glass p-4 rounded-2xl text-center border ${a.bg} shadow-xl transform transition hover:scale-105"><div class="text-base font-black ${a.color} mb-1 drop-shadow-sm">${a.t}</div><div class="text-[11px] font-bold text-slate-300 mb-2 truncate">${a.d}</div><div class="text-lg font-black text-white bg-slate-800/80 rounded-xl py-2 mb-2 truncate px-2 border border-slate-600 shadow-inner flex items-center justify-center">${window.getEmojiHTML(a.emj)}${a.n}</div><div class="text-emerald-400 font-black text-sm drop-shadow-md">${a.v}</div></div>`).join('')}
                         </div>
                     </div>
                     <div class="lg:w-1/3 w-full bg-glass p-6 rounded-3xl border border-slate-600 shadow-2xl flex flex-col max-h-[500px] lg:max-h-full">
                         <h3 class="font-black text-2xl mb-4 text-white flex items-center border-b border-slate-600 pb-3"><i class="fas fa-list-ol mr-3 text-blue-400"></i>전체 랭킹</h3>
                         <div class="flex-grow overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-2">
-                            ${sortedRanks.map((r,i)=>`<div class="flex justify-between items-center px-4 py-3 ${i===0?'bg-gradient-to-r from-yellow-900/60 to-slate-800 border border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]':'bg-slate-800 border border-slate-700 shadow-md'} rounded-xl text-base"><span class="font-black flex items-center truncate flex-1"><span class="w-8 text-center mr-3 ${i===0?'text-yellow-400 text-2xl':(i===1?'text-slate-300 text-xl':(i===2?'text-orange-400 text-xl':'text-slate-500 text-lg'))}">${i+1}</span> <span class="truncate text-white">${r.name}</span></span><span class="text-green-400 font-black shrink-0 text-xl ml-2">${r.ast.toLocaleString()}원</span></div>`).join('')}
+                            ${sortedRanks.map((r,i)=>`<div class="flex justify-between items-center px-4 py-3 ${i===0?'bg-gradient-to-r from-yellow-900/60 to-slate-800 border border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]':'bg-slate-800 border border-slate-700 shadow-md'} rounded-xl text-base"><span class="font-black flex items-center truncate flex-1"><span class="w-8 text-center mr-3 shrink-0 ${i===0?'text-yellow-400 text-2xl':(i===1?'text-slate-300 text-xl':(i===2?'text-orange-400 text-xl':'text-slate-500 text-lg'))}">${i+1}</span><span class="flex items-center truncate text-white">${r.fin&&r.fin.equippedEmoji?window.getEmojiHTML(r.fin.equippedEmoji):''}${r.name}</span></span><span class="text-green-400 font-black shrink-0 text-xl ml-2">${r.ast.toLocaleString()}원</span></div>`).join('')}
                         </div>
                     </div>
                 </div>
