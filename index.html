@@ -722,7 +722,12 @@
         window.fbOnChildAdded(window.fbRef(window.fbDb, `rooms/${roomCode}/actions`), (snapshot) => {
             const action = snapshot.val(); if(action) { handlePlayerAction(action); window.fbRemove(window.fbRef(window.fbDb, `rooms/${roomCode}/actions/${snapshot.key}`)); }
         });
-        setTimeout(renderLobby, 500); 
+        // 👇 기존의 setTimeout 부분을 아래 코드로 완전히 교체해 주세요! 👇
+        setTimeout(() => { 
+            const currentEmoji = localStorage.getItem('stockedu_equipped') || window.myEquippedEmoji || '';
+            sendPlayerAction({ type: 'JOIN', uid: myUid, name: n, equippedEmoji: currentEmoji }); 
+        }, 500);
+        // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
     };
 
     const renderLobby = () => {
