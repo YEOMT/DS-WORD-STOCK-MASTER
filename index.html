@@ -611,7 +611,8 @@
         else if (data.type === 'HOST_NEXT_PHASE') { roomState.endPhase = 'rankings'; }
         else if (data.type === 'HOST_WEALTH_TAX') {
             let sortedRanks = getRankings(); let taxTotal = 0;
-            let topLimit = roomState.mode === 'team' ? Math.max(1, Math.floor(sortedRanks.length/2)) : Math.min(5, sortedRanks.length);
+            // 모드 상관없이 무조건 1~3등까지만 징수 (참가자가 3명 미만이면 그 인원수만큼)
+            let topLimit = Math.min(3, sortedRanks.length); 
             for(let i=0; i<topLimit; i++) {
                 let f = sortedRanks[i].fin; let tax = Math.floor(f.cash * 0.20);
                 let isEco = f.portfolio && f.portfolio['s9'] > 0; if (isEco) { tax = Math.floor(tax * 0.5); }
@@ -680,7 +681,7 @@
             <div class="flex flex-col flex-grow fade-in w-full max-w-md mx-auto pt-10"><button onclick="window.renderHome()" class="self-start text-slate-400 hover:text-white mb-6"><i class="fas fa-arrow-left mr-1"></i>뒤로</button><h2 class="text-2xl font-bold mb-4"><i class="fas fa-cog mr-2"></i> 게임 설정</h2><div class="bg-glass p-6 rounded-2xl">
                     <input type="hidden" id="game-mode-val" value="indiv">
                     <div class="mb-4"><label class="block text-sm font-bold mb-2">게임 모드</label><div class="flex gap-2"><button id="btn-mode-indiv" onclick="window.setMode('indiv')" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold border-2 border-indigo-400">개인전</button><button id="btn-mode-team" onclick="window.setMode('team')" class="flex-1 py-3 bg-slate-700 text-slate-400 rounded-xl font-bold border-2 border-transparent">팀전 (공유 금고)</button></div></div>
-                    <div id="team-setup" class="hidden mb-4 bg-slate-800 p-4 rounded-xl border border-slate-600"><label class="block text-sm font-bold mb-2 text-yellow-400">만들 팀 개수</label><select id="team-count" class="w-full bg-slate-900 border border-slate-500 rounded p-3 font-bold text-center text-white"><option value="2">2 팀</option><option value="3">3 팀</option><option value="4" selected>4 팀</option><option value="5">5 팀</option><option value="6">6 팀</option></select></div>
+                    <div id="team-setup" class="hidden mb-4 bg-slate-800 p-4 rounded-xl border border-slate-600"><label class="block text-sm font-bold mb-2 text-yellow-400">만들 팀 개수</label><select id="team-count" class="w-full bg-slate-900 border border-slate-500 rounded p-3 font-bold text-center text-white"><option value="2">2 팀</option><option value="3">3 팀</option><option value="4" selected>4 팀</option><option value="5">5 팀</option><option value="6">6 팀</option><option value="7">7 팀</option><option value="8">8 팀</option></select>
                     <div class="mb-4 bg-slate-800 p-4 rounded-xl border border-slate-600"><label class="block text-sm font-bold mb-2 text-yellow-400">커스텀 단어장 (선택)</label><input type="file" id="custom-word-file" accept=".txt" class="w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"></div>
                     <label class="block text-sm font-bold mb-2 mt-6">총 게임 시간 (분)</label><input type="number" id="game-duration" value="15" min="3" max="60" class="w-full bg-slate-800 border border-slate-600 rounded p-3 mb-6 font-bold text-center text-white">
                     <button onclick="window.createRoom()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition">방 생성하기</button>
@@ -734,8 +735,11 @@
     const renderLobby = () => {
         const isHost = currentRole === 'host'; const joinUrl = `https://yeomt.github.io/DS-WORD-STOCK-MASTER/?room=${roomCode}`;
         document.getElementById('app').innerHTML = `
-            <div class="flex flex-col items-center flex-grow fade-in pt-10 w-full max-w-2xl mx-auto h-full">
-                <div class="bg-glass px-6 py-6 md:px-12 md:py-8 rounded-3xl mb-8 border border-blue-500/30 text-center w-full shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+            <!-- 배경 이미지 레이어 시작 (opacity-20으로 투명도 20% 적용) -->
+            <div class="absolute inset-0 z-0 opacity-20 pointer-events-none" style="background-image: url('https://www.dropbox.com/scl/fi/okfefhpf0r6z98ixpil2e/stromoftrademarket.png?rlkey=fy1704nofzeg0ompyvm1xnu81&st=k839bimt&raw=1'); background-size: cover; background-position: center;"></div>
+            <!-- 배경 이미지 레이어 끝 -->
+            <div class="flex flex-col items-center flex-grow fade-in pt-10 w-full max-w-2xl mx-auto h-full relative z-10">
+                <div class="bg-glass px-6 py-6 md:px-12 md:py-8 rounded-3xl mb-8 border border-blue-500/30 text-center w-full shadow-[0_0_20px_rgba(59,130,246,0.2)] relative z-10">
                     <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
                         <div class="flex flex-col items-center"><p class="text-slate-400 mb-1">접속 코드 <span class="text-xs bg-indigo-600 px-2 py-0.5 rounded text-white ml-2">${roomState.mode === 'team' ? '팀전 모드' : '개인전 모드'}</span></p><div class="text-6xl md:text-7xl font-black text-white tracking-widest font-mono mb-2">${roomCode}</div></div>
                         ${isHost ? `<div class="flex flex-col items-center border-t md:border-t-0 md:border-l border-slate-600 pt-4 md:pt-0 md:pl-8"><div class="bg-white p-2 rounded-xl shadow-lg"><img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(joinUrl)}&margin=0" alt="QR Code" class="w-20 h-20 md:w-24 md:h-24"></div><p class="text-slate-400 text-[10px] md:text-xs mt-2 font-bold">카메라로 스캔하여 접속</p></div>` : ''}
