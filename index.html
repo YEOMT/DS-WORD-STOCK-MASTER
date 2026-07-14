@@ -1330,12 +1330,12 @@
 
         let awards = []; const activePlayers = players.filter(p => p.tradeCount > 0 || p.correctAnswers > 0);
         if (roomState.mode === 'team') {
-            const byQuiz = [...activePlayers].sort((a,b)=>(b.earnedFromQuiz||0)-(a.earnedFromQuiz||0))[0]; if(byQuiz && byQuiz.earnedFromQuiz > 0) awards.push({ t:"🎩 시드머니 캐리", d:"팀 퀴즈 수익 기여 1위", n:byQuiz.name, v:byQuiz.earnedFromQuiz.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500", emj:byQuiz.equippedEmoji });
-            const byBuy = [...activePlayers].sort((a,b)=>(b.buyAmount||0)-(a.buyAmount||0))[0]; if(byBuy && byBuy.buyAmount > 0) awards.push({ t:"💸 풀매수 장인", d:"팀 매수 금액 1위", n:byBuy.name, v:byBuy.buyAmount.toLocaleString()+'원', color: "text-red-400", bg: "border-red-500", emj:byBuy.equippedEmoji });
+            if(byReturn.length > 0 && byReturn[0].returnRate > 0) awards.push({ t:"🎩 대송 버핏", d:"투자 수익률 1위", n:byReturn[0].name, v:`+${byReturn[0].returnRate.toFixed(1)}%`, color: "text-red-400", bg: "border-red-500", emj:byReturn[0].equippedEmoji });
+            const byBuy = [...activePlayers].sort((a,b)=>(b.buyAmount||0)-(a.buyAmount||0))[0]; if(byBuy && byBuy.buyAmount > 0) awards.push({ t:"💸 큰 손", d:"팀 매수 금액 1위", n:byBuy.name, v:byBuy.buyAmount.toLocaleString()+'원', color: "text-red-400", bg: "border-red-500", emj:byBuy.equippedEmoji });
             const qK = [...activePlayers].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500", emj:qK.equippedEmoji });
             const itemK = [...activePlayers].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500", emj:itemK.equippedEmoji });
             const tK = [...activePlayers].sort((a,b)=>(b.tradeCount||0)-(a.tradeCount||0))[0]; if(tK && tK.tradeCount>0) awards.push({ t:"⚡ 야수의 심장", d:"최다 거래 (단타 장인)", n:tK.name, v:tK.tradeCount+'회', color: "text-orange-400", bg: "border-orange-500", emj:tK.equippedEmoji });
-            const wK = [...activePlayers].sort((a,b)=>(b.wrongAnswers||0)-(a.wrongAnswers||0))[0]; if(wK && wK.wrongAnswers>0) awards.push({ t:"🤡 찍기 장인", d:"오답 횟수 1위", n:wK.name, v:wK.wrongAnswers+'번', color: "text-slate-400", bg: "border-slate-500", emj:wK.equippedEmoji });
+            if(byReturn.length > 0 && byReturn[byReturn.length-1].returnRate < 0) { const clown = byReturn[byReturn.length-1]; awards.push({ t:"🤡 올해의 광대", d:"투자 손실률 1위", n:clown.name, v:`${clown.returnRate.toFixed(1)}%`, color: "text-slate-400", bg: "border-slate-500", emj:clown.equippedEmoji }); }
         } else {
             let sortedIndiv = players.map(p=>{
                 let stockVal = 0; let totalCost = p.delistedCost || 0; 
@@ -1344,7 +1344,7 @@
             });
             const activeIndiv = sortedIndiv.filter(p => p.tradeCount > 0); const byReturn = [...activeIndiv].sort((a,b) => b.returnRate - a.returnRate);
             const maxStockP = [...sortedIndiv].sort((a,b) => b.stockVal - a.stockVal)[0];
-            if(maxStockP && maxStockP.stockVal > 0) awards.push({ t:"🎩 자산 버핏", d:"주식 자산 1위", n:maxStockP.name, v:maxStockP.stockVal.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500", emj:maxStockP.equippedEmoji });
+            if(maxStockP && maxStockP.stockVal > 0) awards.push({ t:"🎩 대송 버핏", d:"주식 자산 1위", n:maxStockP.name, v:maxStockP.stockVal.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500", emj:maxStockP.equippedEmoji });
             if(byReturn.length > 0 && byReturn[0].returnRate > 0) awards.push({ t:"🚀 존버왕", d:"투자 수익률 1위", n:byReturn[0].name, v:`+${byReturn[0].returnRate.toFixed(1)}%`, color: "text-red-400", bg: "border-red-500", emj:byReturn[0].equippedEmoji });
             const qK = [...sortedIndiv].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500", emj:qK.equippedEmoji });
             const itemK = [...sortedIndiv].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500", emj:itemK.equippedEmoji });
