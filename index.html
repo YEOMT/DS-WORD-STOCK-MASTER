@@ -133,8 +133,9 @@
     };
 
     const SOUNDS = {
-        lobbyBgm: new Audio('https://www.dropbox.com/scl/fi/j9shznmon90hb3ytl82fg/Dawn-of-the-Trading-Market.mp3?rlkey=ywr0lgopo3z0qkk3wdnqc6zcq&st=46jfdtxm&dl=1'), // 👈 로비용 배경음악 링크 추가
-        bgm: new Audio('https://www.dropbox.com/scl/fi/2ht3m16mct0lyjpph713f/Storm-of-Stock-Trade-Market.mp3?rlkey=s97fhf9kmwnbzf99g2n67cvu1&st=aotnhgri&dl=1'),
+        // 👈 링크 끝부분을 dl=1 에서 raw=1 로 변경했습니다.
+        lobbyBgm: new Audio('https://www.dropbox.com/scl/fi/j9shznmon90hb3ytl82fg/Dawn-of-the-Trading-Market.mp3?rlkey=ywr0lgopo3z0qkk3wdnqc6zcq&st=46jfdtxm&raw=1'), 
+        bgm: new Audio('https://www.dropbox.com/scl/fi/2ht3m16mct0lyjpph713f/Storm-of-Stock-Trade-Market.mp3?rlkey=s97fhf9kmwnbzf99g2n67cvu1&st=aotnhgri&raw=1'),
         coin: () => { play8BitTone('square', 800, 0.1, 0.1, 1200); setTimeout(() => play8BitTone('square', 1200, 0.15, 0.1, 1600), 100); },
         wrong: () => { play8BitTone('sawtooth', 300, 0.3, 0.15, 100); },
         tick: () => { play8BitTone('square', 1000, 0.05, 0.05); },
@@ -143,7 +144,18 @@
         item: () => { play8BitTone('square', 400, 0.1, 0.1); setTimeout(() => play8BitTone('square', 600, 0.1, 0.1), 100); setTimeout(() => play8BitTone('square', 800, 0.2, 0.1), 200); }
     };
     SOUNDS.bgm.loop = true; SOUNDS.bgm.volume = 0.3;
-    SOUNDS.lobbyBgm.loop = true; SOUNDS.lobbyBgm.volume = 0.3; // 👈 로비 음악 반복 및 볼륨 설정
+    SOUNDS.lobbyBgm.loop = true; SOUNDS.lobbyBgm.volume = 0.3; 
+
+    // 👇 모바일/드롭박스 환경에서 BGM이 뚝 끊기는 현상 방지 (음악이 끝나면 강제 재시작)
+    SOUNDS.bgm.addEventListener('ended', function() {
+        this.currentTime = 0;
+        this.play().catch(() => {});
+    }, false);
+
+    SOUNDS.lobbyBgm.addEventListener('ended', function() {
+        this.currentTime = 0;
+        this.play().catch(() => {});
+    }, false);
 
     // 👈 두 음악 모두 완전히 끄도록 수정
     window.stopBGM = () => { 
