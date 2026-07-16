@@ -740,6 +740,13 @@
 
     const renderLobby = () => {
         const isHost = currentRole === 'host'; const joinUrl = `https://yeomt.github.io/DS-WORD-STOCK-MASTER/?room=${roomCode}`;
+        
+        // 👈 방장(호스트)일 경우에만 로비 음악 재생 시작
+        if (isHost) {
+            window.stopBGM(); // 겹치지 않게 초기화 후
+            window.playSound('lobbyBgm'); // 로비 음악 큐!
+        }
+
         document.getElementById('app').innerHTML = `
             <!-- 배경 이미지 레이어 시작 (opacity-20으로 투명도 20% 적용) -->
             <div class="absolute inset-0 z-0 opacity-20 pointer-events-none" style="background-image: url('https://www.dropbox.com/scl/fi/okfefhpf0r6z98ixpil2e/stromoftrademarket.png?rlkey=fy1704nofzeg0ompyvm1xnu81&st=k839bimt&raw=1'); background-size: cover; background-position: center;"></div>
@@ -826,6 +833,7 @@
     };
 
     window.startGame = () => {
+        window.stopBGM(); // 👈 본게임 음악을 틀기 전 로비 음악 끄기
         window.playSound('bgm'); roomState.status = 'playing'; roomState.endTime = Date.now() + roomState.durationMs; roomState.nextPhaseTime = Date.now() + 30000;
         roomState.chats.push({ uid: 'system', name: '시스템', text: '게임이 시작되었습니다! 장 변동에 주의하세요.' }); hostBroadcast();
         
