@@ -62,15 +62,15 @@
         @keyframes hitEffectFloat { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -150%) scale(1.5); opacity: 0; } }
     </style>
 </head>
-<body class="min-h-screen flex bg-slate-900 text-slate-50 overflow-hidden">
+<body class="min-h-screen flex bg-slate-900 text-slate-50">
 
     <script>
         document.addEventListener('contextmenu', event => event.preventDefault());
         document.addEventListener('keydown', event => { if (event.key === 'F12' || (event.ctrlKey && event.shiftKey && event.key === 'I')) event.preventDefault(); });
     </script>
 
-    <div id="app-container" class="flex flex-grow w-full h-[100dvh] relative overflow-hidden">
-        <div id="app" class="flex-grow flex flex-col w-full max-w-7xl mx-auto p-2 md:p-3 relative h-full overflow-y-auto custom-scrollbar">
+    <div id="app-container" class="flex flex-grow w-full min-h-[100dvh] relative">
+        <div id="app" class="flex-grow flex flex-col w-full max-w-7xl mx-auto p-2 md:p-3 relative min-h-full custom-scrollbar">
             <div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div></div>
         </div>
 
@@ -133,6 +133,7 @@
     };
 
     const SOUNDS = {
+        lobbyBgm: new Audio('https://www.dropbox.com/scl/fi/j9shznmon90hb3ytl82fg/Dawn-of-the-Trading-Market.mp3?rlkey=ywr0lgopo3z0qkk3wdnqc6zcq&st=46jfdtxm&dl=1'), // 👈 로비용 배경음악 링크 추가
         bgm: new Audio('https://www.dropbox.com/scl/fi/2ht3m16mct0lyjpph713f/Storm-of-Stock-Trade-Market.mp3?rlkey=s97fhf9kmwnbzf99g2n67cvu1&st=aotnhgri&dl=1'),
         coin: () => { play8BitTone('square', 800, 0.1, 0.1, 1200); setTimeout(() => play8BitTone('square', 1200, 0.15, 0.1, 1600), 100); },
         wrong: () => { play8BitTone('sawtooth', 300, 0.3, 0.15, 100); },
@@ -142,8 +143,13 @@
         item: () => { play8BitTone('square', 400, 0.1, 0.1); setTimeout(() => play8BitTone('square', 600, 0.1, 0.1), 100); setTimeout(() => play8BitTone('square', 800, 0.2, 0.1), 200); }
     };
     SOUNDS.bgm.loop = true; SOUNDS.bgm.volume = 0.3;
+    SOUNDS.lobbyBgm.loop = true; SOUNDS.lobbyBgm.volume = 0.3; // 👈 로비 음악 반복 및 볼륨 설정
 
-    window.stopBGM = () => { if (SOUNDS.bgm) { SOUNDS.bgm.pause(); SOUNDS.bgm.currentTime = 0; } };
+    // 👈 두 음악 모두 완전히 끄도록 수정
+    window.stopBGM = () => { 
+        if (SOUNDS.bgm) { SOUNDS.bgm.pause(); SOUNDS.bgm.currentTime = 0; } 
+        if (SOUNDS.lobbyBgm) { SOUNDS.lobbyBgm.pause(); SOUNDS.lobbyBgm.currentTime = 0; }
+    };
     window.playSound = (soundKey) => { 
         if (!soundKey) return; getAudioCtx(); const sound = SOUNDS[soundKey]; 
         if (!sound) return; if (typeof sound === 'function') sound(); else { sound.currentTime = 0; sound.play().catch(() => {}); } 
@@ -176,7 +182,7 @@
         { emoji: '🥸', tier: 'Silver', name: '작전세력' },
         { emoji: '🐮', tier: 'Silver', name: '흑우' },
         { emoji: '💔', tier: 'Silver', name: '상장폐지' },
-        { emoji: '💀', tier: 'Silver', name: '구조대는 어디에' },
+        { emoji: '💀', tier: 'Silver', name: '살려줘요' },
         { emoji: '🐳', tier: 'Gold', name: '병하전자' },
         { emoji: '🪙', tier: 'Gold', name: '비스트하트 코인' },
         { emoji: '🧬', tier: 'Gold', name: 'YG바이오' },
@@ -405,7 +411,7 @@
             for (let i = lastChatLength; i < chats.length; i++) {
                 const msg = chats[i]; const isMe = msg.uid === myUid; const msgEl = document.createElement('div');
                 let p = players.find(x => x.id === msg.uid); let emjHtml = p && p.equippedEmoji ? window.getEmojiHTML(p.equippedEmoji) : '';
-                msgEl.className = `inline-block px-4 py-2 rounded-2xl text-xs md:text-sm font-bold shadow-[0_4px_15px_rgba(0,0,0,0.5)] max-w-[90%] break-words fade-in-up pointer-events-auto cursor-pointer ${isMe ? 'bg-indigo-600/95 text-white self-end' : 'bg-slate-800/95 text-slate-100 border border-slate-600/80'} backdrop-blur-md transition-all duration-500 ease-out z-[90]`;
+                msgEl.className = `inline-block px-4 py-2 rounded-2xl text-xs md:text-sm font-bold shadow-[0_4px_15px_rgba(0,0,0,0.5)] max-w-[90%] break-words fade-in-up pointer-events-auto cursor-pointer ${isMe ? 'bg-indigo-600/60 text-white self-end border border-indigo-400/50' : 'bg-slate-800/60 text-slate-100 border border-slate-600/50'} backdrop-blur-md transition-all duration-500 ease-out z-[90]`;
                 msgEl.onclick = function(e) { e.stopPropagation(); this.style.opacity = '0'; setTimeout(() => this.remove(), 300); }; 
                 msgEl.innerHTML = `<span class="${isMe ? 'hidden' : 'text-yellow-400 text-[10px] md:text-xs mr-1.5 flex items-center mb-0.5'}">${emjHtml}${msg.name}</span><span class="${isMe ? 'hidden' : 'block'}"></span>${msg.text}`;
                 hud.appendChild(msgEl); hud.scrollTop = hud.scrollHeight; setTimeout(() => { msgEl.style.opacity = '0'; msgEl.style.transform = 'translateY(-10px)'; setTimeout(() => msgEl.remove(), 500); }, 5000);
@@ -1334,12 +1340,12 @@
 
         let awards = []; const activePlayers = players.filter(p => p.tradeCount > 0 || p.correctAnswers > 0);
         if (roomState.mode === 'team') {
-            if(byReturn.length > 0 && byReturn[0].returnRate > 0) awards.push({ t:"🎩 대송 버핏", d:"투자 수익률 1위", n:byReturn[0].name, v:`+${byReturn[0].returnRate.toFixed(1)}%`, color: "text-red-400", bg: "border-red-500", emj:byReturn[0].equippedEmoji });
+            const byQuiz = [...activePlayers].sort((a,b)=>(b.earnedFromQuiz||0)-(a.earnedFromQuiz||0))[0]; if(byQuiz && byQuiz.earnedFromQuiz > 0) awards.push({ t:"🎩 회장님", d:"팀 퀴즈 수익 기여 1위", n:byQuiz.name, v:byQuiz.earnedFromQuiz.toLocaleString()+'원', color: "text-blue-400", bg: "border-blue-500", emj:byQuiz.equippedEmoji });
             const byBuy = [...activePlayers].sort((a,b)=>(b.buyAmount||0)-(a.buyAmount||0))[0]; if(byBuy && byBuy.buyAmount > 0) awards.push({ t:"💸 큰 손", d:"팀 매수 금액 1위", n:byBuy.name, v:byBuy.buyAmount.toLocaleString()+'원', color: "text-red-400", bg: "border-red-500", emj:byBuy.equippedEmoji });
             const qK = [...activePlayers].sort((a,b)=>(b.correctAnswers||0)-(a.correctAnswers||0))[0]; if(qK && qK.correctAnswers>0) awards.push({ t:"🐜 성실한 개미", d:"정답 횟수 1위", n:qK.name, v:qK.correctAnswers+'번', color: "text-emerald-400", bg: "border-emerald-500", emj:qK.equippedEmoji });
             const itemK = [...activePlayers].sort((a,b)=>(b.itemUseCount||0)-(a.itemUseCount||0))[0]; if(itemK && itemK.itemUseCount>0) awards.push({ t:"🔥 도파민 중독자", d:"아이템 사용 1위", n:itemK.name, v:itemK.itemUseCount+'회', color: "text-purple-400", bg: "border-purple-500", emj:itemK.equippedEmoji });
             const tK = [...activePlayers].sort((a,b)=>(b.tradeCount||0)-(a.tradeCount||0))[0]; if(tK && tK.tradeCount>0) awards.push({ t:"⚡ 야수의 심장", d:"최다 거래 (단타 장인)", n:tK.name, v:tK.tradeCount+'회', color: "text-orange-400", bg: "border-orange-500", emj:tK.equippedEmoji });
-            if(byReturn.length > 0 && byReturn[byReturn.length-1].returnRate < 0) { const clown = byReturn[byReturn.length-1]; awards.push({ t:"🤡 올해의 광대", d:"투자 손실률 1위", n:clown.name, v:`${clown.returnRate.toFixed(1)}%`, color: "text-slate-400", bg: "border-slate-500", emj:clown.equippedEmoji }); }
+            const wK = [...activePlayers].sort((a,b)=>(b.wrongAnswers||0)-(a.wrongAnswers||0))[0]; if(wK && wK.wrongAnswers>0) awards.push({ t:"🤡 히든 트롤", d:"오답 횟수 1위", n:wK.name, v:wK.wrongAnswers+'번', color: "text-slate-400", bg: "border-slate-500", emj:wK.equippedEmoji });
         } else {
             let sortedIndiv = players.map(p=>{
                 let stockVal = 0; let totalCost = p.delistedCost || 0; 
